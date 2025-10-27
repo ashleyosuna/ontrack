@@ -6,7 +6,7 @@ import { TaskForm } from './components/TaskForm';
 import { Settings } from './components/Settings';
 import { Button } from './components/ui/button';
 import { Home, List, Plus, Settings as SettingsIcon, Sparkles } from 'lucide-react';
-import { Toaster, toast } from 'sonner@2.0.3';
+import { Toaster, toast } from 'sonner';
 import { Category, Task, Suggestion, UserProfile, DEFAULT_CATEGORIES } from './types';
 import { storage } from './utils/storage';
 import { generateSuggestions } from './utils/assistant';

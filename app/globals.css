@@ -1,5 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* keep dark variant support */
 @custom-variant dark (&:is(.dark *));
 
+/* =============================
+   CSS VARIABLES (LIGHT MODE)
+   ============================= */
 :root {
   --font-size: 16px;
   --background: #ffffff;
@@ -41,6 +49,9 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* =============================
+   DARK MODE VARIABLES
+   ============================= */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -61,8 +72,6 @@
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -78,7 +87,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -105,10 +114,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -119,20 +130,23 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* =============================
+   BASE LAYERS
+   ============================= */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
-}
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
-@layer base {
+  html {
+    font-size: var(--font-size);
+  }
+
+  /* default typography if no Tailwind text classes applied */
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
     h1 {
       font-size: var(--text-2xl);
@@ -152,38 +166,23 @@
       line-height: 1.5;
     }
 
-    h4 {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    p {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
-
-    label {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    button {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
+    h4,
+    p,
+    label,
+    button,
     input {
       font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
       line-height: 1.5;
     }
-  }
-}
 
-html {
-  font-size: var(--font-size);
+    label,
+    button {
+      font-weight: var(--font-weight-medium);
+    }
+
+    p,
+    input {
+      font-weight: var(--font-weight-normal);
+    }
+  }
 }
