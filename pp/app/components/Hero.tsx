@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { Sparkles, Calendar, Bell } from "lucide-react";
-import { ImageWithFallback } from "./ui/ImageWithFallback";
+// import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function Hero() {
   return (
