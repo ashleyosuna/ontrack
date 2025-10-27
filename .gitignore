@@ -39,3 +39,15 @@ Thumbs.db
 .cache/
 .vite/
 coverage/
+
+# Capacitor / mobile platform builds
+ios/
+android/
+capacitor.config.json
+capacitor.config.ts
+
+# Next.js static export
+export/
+
+# Misc local dev files
+*.local
