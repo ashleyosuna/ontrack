@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   // Use class-based dark mode so nothing flips unexpectedly via media query
-  darkMode: ["class"],
+  darkMode: "class",
 
   // Tell Tailwind where to look for class names
   content: [

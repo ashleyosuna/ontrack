@@ -31,30 +31,41 @@ export default function App() {
     const savedSuggestions = storage.getSuggestions();
 
     // Auto-initialize with all categories if first time
-    if (!profile) {
-      const newProfile: UserProfile = {
-        trackedCategories: DEFAULT_CATEGORIES.map(c => c.name),
-        hasCompletedOnboarding: true,
-        calendarIntegration: true,
-        notificationsEnabled: true,
-      };
-      setUserProfile(newProfile);
-      storage.saveUserProfile(newProfile);
-      
-      // Initialize all categories
-      const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
-        ...cat,
-        id: `category-${Date.now()}-${index}`,
-      }));
-      setCategories(initialCategories);
-      storage.saveCategories(initialCategories);
-      toast.success('Welcome to OnTrack! 🎉');
-    } else {
-      setUserProfile(profile);
-      if (savedCategories.length > 0) {
-        setCategories(savedCategories);
+    // if (!profile) {
+    //   const newProfile: UserProfile = {
+    //     trackedCategories: DEFAULT_CATEGORIES.map(c => c.name),
+    //     hasCompletedOnboarding: true,
+    //     calendarIntegration: true,
+    //     notificationsEnabled: true,
+    //   };
+      // setUserProfile(newProfile);
+      // storage.saveUserProfile(newProfile);
+          // Initialize all categories
+      //   const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      //     ...cat,
+      //     id: `category-${Date.now()}-${index}`,
+      //   }));
+      //   setCategories(initialCategories);
+      //   storage.saveCategories(initialCategories);
+      //   toast.success('Welcome to OnTrack! 🎉');
+      // } else {
+      //   setUserProfile(profile);
+      //   if (savedCategories.length > 0) {
+      //     setCategories(savedCategories);
+      //   }
+      // }
+    
+      if (!profile) {
+    // Do NOT auto-complete or prefill all categories here.
+    // Just leave userProfile null so the Onboarding screen appears.
+        setUserProfile(null);
+        setCategories([]); // empty until onboarding completes
+      } else {
+        setUserProfile(profile);
+        if (savedCategories.length > 0) {
+          setCategories(savedCategories);
+        }
       }
-    }
 
     setTasks(savedTasks);
     setSuggestions(savedSuggestions);
@@ -293,6 +304,15 @@ export default function App() {
     );
   }
 
+  // Show onboarding if no profile or not completed
+  if (!userProfile || !userProfile.hasCompletedOnboarding) {
+    return (
+      <Onboarding
+        onComplete={handleOnboardingComplete}
+      />
+    );
+  }
+
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
   const selectedTask = tasks.find((t) => t.id === selectedTaskId);
   const categoryTasks = selectedCategoryId
@@ -301,6 +321,7 @@ export default function App() {
 
   // Check if we're on a main view (for bottom nav)
   const isMainView = ['dashboard', 'categories', 'settings'].includes(currentView);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
