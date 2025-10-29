@@ -36,6 +36,7 @@ Our goal is to reduce mental clutter and help people stay organized with a robus
 Coming soon!
 
 ## Milestones & Documentation
+Note that in Milestones 1 and 2 we were developing Gifted, which we have since pivoted from.
 
 Milestone Presentations
 - [Milestone 1 Presentation](https://drive.google.com/file/d/1OaasktQ2_4uYJifcVagTlFveQaarOv0h/view?usp=drive_link)
@@ -55,6 +56,9 @@ Check the wiki folder for documentation
 - npm
 
 ### Tech Stack
+The tech stack is evolving. Our priority is creating a prototype, and we are mainly using Figma Make for this.
+We have not done any backend work at this time.
+
 - **Frontend:** Next.js (React) + TypeScript    
 - **Styling:** Tailwind CSS + shadcn/ui  
 - **UI Design:** Figma Make  
