@@ -1,6 +1,6 @@
 "use client";
 
-import App from "@/App"; // assuming App.tsx is in src/App.tsx
+import App from '../src/App'; // app/ and src/ are siblings
 
 export default function Page() {
   return <App />;

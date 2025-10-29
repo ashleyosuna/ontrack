@@ -8,7 +8,6 @@ const config: Config = {
   content: [
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    // if you later add components outside those, add more globs
   ],
 
   theme: {
@@ -53,6 +52,8 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
+      },
+      fontFamily: { sans: ["var(--font-sans)"]
       },
     },
   },

@@ -9,6 +9,7 @@
    CSS VARIABLES (LIGHT MODE)
    ============================= */
 :root {
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size: 16px;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
@@ -135,16 +136,23 @@
    ============================= */
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+
+  /* Accessible, consistent focus style using rings */
+  :focus {
+    @apply outline-none;
+  }
+  :focus-visible {
+    @apply ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
   }
 
-  html {
-    font-size: var(--font-size);
-  }
+  html { font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
   /* default typography if no Tailwind text classes applied */
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
