@@ -1,4 +1,4 @@
-# ✅ OnTrack
+# OnTrack
 
 **OnTrack** is a mobile application designed to help you stay on top of life’s essential tasks — all in one place. It’s more than just another calendar or to-do list. OnTrack is your digital filing cabinet with a built-in assistant that reminds you when and how to get things done.
 
@@ -37,11 +37,16 @@ Coming soon!
 
 ## Milestones & Documentation
 
-- [Add milestone links or documentation folders here]
+Milestone Presentations
+- [Milestone 1 Presentation](https://drive.google.com/file/d/1OaasktQ2_4uYJifcVagTlFveQaarOv0h/view?usp=drive_link)
+- [Milestone 2 Presentation](https://www.canva.com/design/DAG1CjI24jA/P29pxHS_YF3AtLeHP4RXhg/edit)
+- Milestone 3 Presentation Coming Soon!
+
+Check the wiki folder for documentation
 
 ## Issue Tracker
 
-- We are using Github Projects as the Issue Tracker
+- We are using Github Projects as our Issue Tracker
 
 ## Installation & Setup
 
