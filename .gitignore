@@ -39,3 +39,4 @@ Thumbs.db
 .cache/
 .vite/
 coverage/
+next-env.d.ts
