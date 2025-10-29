@@ -61,6 +61,25 @@ Tapping on a task opens a detailed view where users can see all associated infor
 **Screenshot:**  
 TODO
 
+## 5. Smart Assistant Prompts
+
+As users add tasks, the **OnTrack Assistant** analyzes their entries and offers helpful suggestions based on context. These prompts appear in the dashboard or task detail view and help users stay ahead of deadlines and requirements they might not think to track.
+
+**Flow highlights:**
+- Context-aware suggestions based on task content (e.g., travel, health, home)
+- Educational tips and best practices (e.g., how long it takes to renew a passport)
+- Prompts to add related tasks or documents (e.g., check insurance before travel)
+- Visual indicators or assistant cards that appear inline with the task list
+
+**Example Scenario:**
+- User adds a task: “Trip to Japan – March 15”
+- Assistant prompt appears:  
+  “Heads up! Japan requires your passport to be valid for at least 6 months beyond your arrival date. It typically takes 1 month to renew a passport — want to add a reminder to check your expiry?”
+
+**Screenshot:**  
+TODO
+
+
 ---
 
 ## Summary
