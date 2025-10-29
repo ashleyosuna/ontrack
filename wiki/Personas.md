@@ -3,15 +3,6 @@
 This page outlines the primary user personas for the app.
 
 The app is designed for users who:
-
-
----
-
-# Personas
-
-This page outlines the primary user personas for the app.
-
-The app is designed for users who:
 - Want a centralized system to manage life’s essential tasks beyond just calendar events  
 - Need help remembering deadlines for things like renewals, maintenance, and bills  
 - Prefer visual organization and reliable reminders  
