@@ -29,7 +29,9 @@ export function HowItWorks() {
     <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-slate-900 mb-4">How it works</h2>
+          <h2 className="text-slate-900 mb-4 text-2xl font-semibold">
+            How it works
+          </h2>
           <p className="text-slate-600 text-lg">
             Three simple steps to a more organized life
           </p>

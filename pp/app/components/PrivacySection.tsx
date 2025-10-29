@@ -30,7 +30,10 @@ const privacyFeatures = [
 
 export function PrivacySection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+    <section
+      className="py-20 bg-gradient-to-b from-slate-900 to-slate-800 text-white"
+      id="privacy"
+    >
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-300 rounded-full mb-6">

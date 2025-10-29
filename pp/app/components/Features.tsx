@@ -58,10 +58,10 @@ const features = [
 
 export function Features() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white" id="features">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-slate-900 mb-4">
+          <h2 className="text-slate-900 mb-4 text-2xl font-semibold">
             Everything you need to stay organized
           </h2>
           <p className="text-slate-600 text-lg">

@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { Sparkles, Calendar, Bell } from "lucide-react";
-// import { ImageWithFallback } from "./ui/ImageWithFallback";
+import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function Hero() {
   return (
@@ -31,12 +31,14 @@ export function Hero() {
               </span>
             </div>
 
-            <h1 className="text-slate-900">
-              Life admin, simplified.
+            <div className="text-slate-900">
+              <h1 className="text-2xl font-semibold">
+                Life admin, simplified.
+              </h1>
               <span className="block text-emerald-600 mt-2">
                 Stay on track, effortlessly.
               </span>
-            </h1>
+            </div>
 
             <p className="text-slate-600 text-lg max-w-lg">
               Smart reminders for everything life throws at you. From passport
@@ -63,18 +65,18 @@ export function Hero() {
               </div>
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                <span>AI-powered suggestions</span>
+                <span>Context-aware suggestions</span>
               </div>
             </div>
           </div>
 
           <div className="relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-white p-4">
-              {/* <ImageWithFallback
+              <ImageWithFallback
                 src="https://images.unsplash.com/photo-1657040298726-7189d3090d5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcmdhbml6ZWQlMjB0YXNrcyUyMGNhbGVuZGFyfGVufDF8fHx8MTc2MTU3NzY4OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                 alt="OnTrack app interface"
                 className="w-full h-auto rounded-2xl"
-              /> */}
+              />
             </div>
             {/* Decorative elements */}
             <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-200 rounded-full blur-3xl opacity-50"></div>
