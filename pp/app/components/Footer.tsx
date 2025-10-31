@@ -1,8 +1,19 @@
+"use client";
+
 import { Button } from "./ui/button";
 import { Sparkles, Twitter, Github, Mail } from "lucide-react";
 import { Input } from "./ui/input";
+import { addToNewsletter } from "../actions/newsletter";
 
 export function Footer() {
+  const formAction = (formData: FormData) => {
+    const email = formData.get("email");
+    try {
+      addToNewsletter(email as string);
+    } catch (err) {
+      console.error("Error adding to newsletter");
+    }
+  };
   return (
     <footer className="bg-white border-t border-slate-200">
       {/* CTA Section */}
@@ -29,13 +40,18 @@ export function Footer() {
           <p>
             We can't wait for you to join us! Be the first one to be notified.
           </p>
-          <div className="mt-4 flex flex-col md:flex-row gap-2 md:justify-center">
+          <form
+            className="mt-4 flex flex-col md:flex-row gap-2 md:justify-center"
+            action={formAction}
+          >
             <Input
               type="email"
               className="md:w-1/2 border-primary bg-white h-[40px]"
+              placeholder="Enter your email"
+              name="email"
             />
             <Button className="h-[40px]">Submit</Button>
-          </div>
+          </form>
         </div>
       </div>
 

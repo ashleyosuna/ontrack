@@ -1,9 +1,21 @@
+"use client";
+
 import { Button } from "./ui/button";
 import { Sparkles, Calendar, Bell } from "lucide-react";
 import { ImageWithFallback } from "./ui/ImageWithFallback";
 import { Input } from "./ui/input";
+import { addToNewsletter } from "../actions/newsletter";
 
 export function Hero() {
+  const formAction = (formData: FormData) => {
+    const email = formData.get("email");
+    try {
+      addToNewsletter(email as string);
+    } catch (err) {
+      console.error("Error adding to newsletter");
+    }
+  };
+
   return (
     <section className="relative overflow-hidden">
       {/* Navigation */}
@@ -64,13 +76,18 @@ export function Hero() {
               <span className="text-slate-600 text-lg max-w-lg">
                 We're almost ready to launch! Be the first one to be notified.
               </span>
-              <div className="flex flex-col md:flex-row gap-2">
+              <form
+                className="flex flex-col md:flex-row gap-2"
+                action={formAction}
+              >
                 <Input
                   className="md:w-2/3 border-primary bg-white h-[40px]"
                   placeholder="Enter your email"
+                  name="email"
+                  // onChange={(e) => setEmail(e.target.value)}
                 />
                 <Button className="h-[40px]">Submit</Button>
-              </div>
+              </form>
             </div>
 
             {/* <div className="flex items-center gap-8 text-sm text-slate-600">
