@@ -41,7 +41,7 @@ Note that in Milestones 1 and 2 we were developing Gifted, which we have since p
 Milestone Presentations
 - [Milestone 1 Presentation](https://drive.google.com/file/d/1OaasktQ2_4uYJifcVagTlFveQaarOv0h/view?usp=drive_link)
 - [Milestone 2 Presentation](https://www.canva.com/design/DAG1CjI24jA/P29pxHS_YF3AtLeHP4RXhg/edit)
-- Milestone 3 Presentation Coming Soon!
+- [Milestone 3 Presentation](https://www.canva.com/design/DAG3SwwkG0U/iWb6eNhChsuCBgortrWt4g/edit)
 
 Check the wiki folder for documentation
 
