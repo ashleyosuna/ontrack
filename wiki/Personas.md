@@ -75,10 +75,15 @@ Geoff moved out on his own after university but has been relying on his mom to t
 
 ## Persona 3
 **Name**: Aspiring Organizer Eleanor
+
 **Age**: 20
+
 **Occupation:** University student (balancing coursework, part-time job)
+
 **Demographics:** Demographics: Lives off-campus with roommates; manages shared expenses like rent and utilities.
+
 **Personality:** Type B, forgetful, often loses track of tasks, recognizes her disorganization and wants to improve it.
+
 
 ### Goals
 - Wants to feel more “on top of things” as she transitions into adulthood and finds herself having more responsibilities to track.
