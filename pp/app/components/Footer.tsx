@@ -1,5 +1,6 @@
 import { Button } from "./ui/button";
 import { Sparkles, Twitter, Github, Mail } from "lucide-react";
+import { Input } from "./ui/input";
 
 export function Footer() {
   return (
@@ -10,7 +11,7 @@ export function Footer() {
           <h2 className="text-slate-900 mb-4 text-2xl font-semibold">
             Ready to get organized?
           </h2>
-          <p className="text-slate-600 text-lg mb-8 max-w-2xl mx-auto">
+          {/* <p className="text-slate-600 text-lg mb-8 max-w-2xl mx-auto">
             Download OnTrack today and experience life admin without the stress.
             No account needed, completely free to start.
           </p>
@@ -24,16 +25,26 @@ export function Footer() {
             <Button size="lg" variant="outline" className="rounded-full">
               Download for Android
             </Button>
+          </div> */}
+          <p>
+            We can't wait for you to join us! Be the first one to be notified.
+          </p>
+          <div className="mt-4 flex flex-col md:flex-row gap-2 md:justify-center">
+            <Input
+              type="email"
+              className="md:w-1/2 border-primary bg-white h-[40px]"
+            />
+            <Button className="h-[40px]">Submit</Button>
           </div>
         </div>
       </div>
 
       {/* Footer Links */}
       <div className="container mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
+        <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <span className="text-slate-900">OnTrack</span>
@@ -70,31 +81,34 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* <div>
+          <div>
             <h4 className="text-slate-900 mb-4">Company</h4>
             <ul className="space-y-2 text-slate-600">
-              <li>
+              {/* <li>
                 <a href="#about" className="hover:text-emerald-600">
                   About
                 </a>
-              </li>
-              <li>
+              </li> */}
+              {/* <li>
                 <a href="#blog" className="hover:text-emerald-600">
                   Blog
                 </a>
-              </li>
+              </li> */}
               <li>
-                <a href="#contact" className="hover:text-emerald-600">
+                <a
+                  href="mailto:ontrack@gmail.com"
+                  className="hover:text-emerald-600"
+                >
                   Contact
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a href="#careers" className="hover:text-emerald-600">
                   Careers
                 </a>
-              </li>
+              </li> */}
             </ul>
-          </div> */}
+          </div>
         </div>
 
         <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -102,7 +116,7 @@ export function Footer() {
             © 2025 OnTrack. All rights reserved. Built with privacy in mind.
           </p>
           <div className="flex items-center gap-4">
-            <a
+            {/* <a
               href="#twitter"
               className="text-slate-400 hover:text-emerald-600"
             >
@@ -110,8 +124,11 @@ export function Footer() {
             </a>
             <a href="#github" className="text-slate-400 hover:text-emerald-600">
               <Github className="w-5 h-5" />
-            </a>
-            <a href="#email" className="text-slate-400 hover:text-emerald-600">
+            </a> */}
+            <a
+              href="mailto:ontrack@gmail.com"
+              className="text-slate-400 hover:text-emerald-600"
+            >
               <Mail className="w-5 h-5" />
             </a>
           </div>

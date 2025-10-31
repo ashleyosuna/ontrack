@@ -1,6 +1,7 @@
 import { Button } from "./ui/button";
 import { Sparkles, Calendar, Bell } from "lucide-react";
 import { ImageWithFallback } from "./ui/ImageWithFallback";
+import { Input } from "./ui/input";
 
 export function Hero() {
   return (
@@ -9,14 +10,14 @@ export function Hero() {
       <nav className="container mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-slate-900">OnTrack</span>
           </div>
-          <Button variant="outline" className="rounded-full">
+          {/* <Button variant="outline" className="rounded-full" disabled>
             Get Started
-          </Button>
+          </Button> */}
         </div>
       </nav>
 
@@ -24,7 +25,7 @@ export function Hero() {
       <div className="container mx-auto px-6 py-20 lg:py-32">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-primary rounded-full">
               <Bell className="w-4 h-4" />
               <span className="text-sm">
                 No account required • 100% private
@@ -35,7 +36,7 @@ export function Hero() {
               <h1 className="text-2xl font-semibold">
                 Life admin, simplified.
               </h1>
-              <span className="block text-emerald-600 mt-2">
+              <span className="block text-primary mt-2">
                 Stay on track, effortlessly.
               </span>
             </div>
@@ -46,19 +47,33 @@ export function Hero() {
               context-aware suggestions and zero hassle.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* TODO: uncomment once we have an MVP */}
+            {/* <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
-                className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                className="rounded-full bg-primary hover:from-emerald-600 hover:to-teal-700"
               >
                 Download for iOS
               </Button>
               <Button size="lg" variant="outline" className="rounded-full">
                 Download for Android
               </Button>
+            </div> */}
+
+            <div className="flex flex-col gap-4">
+              <span className="text-slate-600 text-lg max-w-lg">
+                We're almost ready to launch! Be the first one to be notified.
+              </span>
+              <div className="flex flex-col md:flex-row gap-2">
+                <Input
+                  className="md:w-2/3 border-primary bg-white h-[40px]"
+                  placeholder="Enter your email"
+                />
+                <Button className="h-[40px]">Submit</Button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-8 text-sm text-slate-600">
+            {/* <div className="flex items-center gap-8 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span>Syncs with your calendar</span>
@@ -67,7 +82,7 @@ export function Hero() {
                 <Sparkles className="w-4 h-4" />
                 <span>Context-aware suggestions</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="relative">

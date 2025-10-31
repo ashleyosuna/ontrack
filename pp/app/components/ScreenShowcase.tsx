@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Shield,
 } from "lucide-react";
+import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function ScreenShowcase() {
   return (
@@ -26,9 +27,21 @@ export function ScreenShowcase() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-items-center">
           {/* Home Dashboard Mockup */}
-          <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
+          <ImageWithFallback
+            className="rounded-lg border border-primary md:w-[300px]"
+            src={"home.png"}
+          />
+          <ImageWithFallback
+            className="rounded-lg border border-primary md:w-[272px]"
+            src={"create2.png"}
+          />
+          <ImageWithFallback
+            className="rounded-lg border border-primary sm:w-[360px]"
+            src="sampleCategory.png"
+          />
+          {/* <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <h3 className="text-slate-900">Home Dashboard</h3>
@@ -108,10 +121,10 @@ export function ScreenShowcase() {
                 </button>
               </div>
             </div>
-          </Card>
+          </Card> */}
 
           {/* Add Task Mockup */}
-          <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
+          {/* <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <h3 className="text-slate-900">Add New Task</h3>
@@ -185,10 +198,10 @@ export function ScreenShowcase() {
                 </div>
               </div>
             </div>
-          </Card>
+          </Card> */}
 
           {/* Settings Mockup */}
-          <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
+          {/* <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <h3 className="text-slate-900">Settings</h3>
@@ -282,10 +295,18 @@ export function ScreenShowcase() {
                 </div>
               </div>
             </div>
-          </Card>
+          </Card> */}
+          {/* <ImageWithFallback
+            className="rounded-lg border border-primary"
+            src="sampleCategory.png"
+          />
+          <ImageWithFallback
+            className="rounded-lg border border-primary"
+            src="settings.png"
+          /> */}
 
           {/* Assistant Suggestions Mockup */}
-          <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
+          {/* <Card className="p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <h3 className="text-slate-900">Assistant Suggestions</h3>
@@ -364,7 +385,7 @@ export function ScreenShowcase() {
                 </p>
               </div>
             </div>
-          </Card>
+          </Card> */}
         </div>
       </div>
     </section>
