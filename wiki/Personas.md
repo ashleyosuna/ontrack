@@ -1,5 +1,7 @@
 # Personas
 
+Disclaimer: The personas are flexible and will evolve as we do more customer discovery and validation.
+
 This page outlines the primary user personas for the app.
 
 The app is designed for users who:
