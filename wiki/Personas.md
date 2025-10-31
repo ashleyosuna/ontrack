@@ -80,22 +80,22 @@ Geoff moved out on his own after university but has been relying on his mom to t
 **Demographics:** Demographics: Lives off-campus with roommates; manages shared expenses like rent and utilities.
 **Personality:** Type B, forgetful, often loses track of tasks, recognizes her disorganization and wants to improve it.
 
-###Goals
+### Goals
 - Wants to feel more “on top of things” as she transitions into adulthood and finds herself having more responsibilities to track.
 - Stay accountable to roommates and friends for shared responsibilities
 - Wants to appear responsible and dependable to family.
 
-###Pain Points
+### Pain Points
 - Often forgets recurring tasks such fulfilling her medicine prescriptions.
 - Feels frustrated by existing productivity apps, she feels there’s “too many” she has to manage at once.
 - Experiences mild guilt/anxiety about being disorganized
 
-###Current Workarounds
+### Current Workarounds
 - Writes things down on her phone’s notes app or paper lists.
 - Writes tasks down but forgets to check them regularly.
 - Adds “adulting” tasks to her calendar but is not reminded with enough time in advance.
 
-###Quotes: 
+### Quotes: 
 - “I like to write everything down, but I still forget to check it later.”
 - “My mom says I should be more organized.”
 
