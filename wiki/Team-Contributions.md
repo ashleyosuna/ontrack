@@ -15,5 +15,4 @@
 - Michelle Rosenthal
 
 ## Specific Roles
-- Project Manager: Joel LeVecque
 - SCRUM Master: Gillian Tamblyn
