@@ -1,5 +1,9 @@
 # Customer Discovery Findings
 
+## Interview Findings
+...put interview findings here
+
+## Survey Findings
 ![What age group are you in](./images/age-group.png)
 ![Do you use apps to keep track of your responsibilities?](./images/do-you-use-apps.png)
 ![Which apps do you use?](./images/which-apps.png)
