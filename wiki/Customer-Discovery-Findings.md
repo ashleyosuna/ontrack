@@ -1,8 +1,5 @@
 # Customer Discovery Findings
 
-## Interview Findings
-# Customer Discovery Takeaways
-
 To get a better understanding of our target customer, we conducted approximately 51 customer interviews and gathered 82 survey responses. The in-person customer interviews were conducted on-campus, so participants were mostly younger university students (between 18 and 30 years old). Doing the survey allowed us to gather responses from a wider range of age groups. We also conducted 3 in-person feature validation interviews using a Figma prototype to gather some early feedback on the design and features being implemented; these were also conducted in-person and at the University of Victoria campus.
 
 ## In-Person Customer Interviews
