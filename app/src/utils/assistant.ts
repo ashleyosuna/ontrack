@@ -1,5 +1,138 @@
 import { Task, Suggestion, Category } from '../types';
 
+// Generate category-based suggestions when user has no tasks yet
+export const generateCategoryBasedSuggestions = (categories: Category[], trackedCategories: string[]): Suggestion[] => {
+  const suggestions: Suggestion[] = [];
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0 = January, 9 = October, etc.
+
+  // Only generate ONE suggestion based on priority
+  // Priority order: Seasonal > Health > Vehicle > Home > Others
+
+  // Vehicle - Winter tire reminder (October-November in Northern hemisphere)
+  if (trackedCategories.includes('Vehicle') && (currentMonth === 9 || currentMonth === 10)) {
+    suggestions.push({
+      id: 'suggestion-category-vehicle-winter',
+      message: 'Winter is coming—have you checked or changed your tires?',
+      type: 'tip',
+      relevance: 10,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Health - Annual checkup reminder
+  if (suggestions.length === 0 && trackedCategories.includes('Health')) {
+    suggestions.push({
+      id: 'suggestion-category-health-checkup',
+      message: 'Stay healthy—schedule your annual physical exam and dental checkup',
+      type: 'tip',
+      relevance: 9,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Home Maintenance - HVAC filter (Fall/Winter)
+  if (suggestions.length === 0 && trackedCategories.includes('Home Maintenance') && (currentMonth >= 8 || currentMonth <= 2)) {
+    suggestions.push({
+      id: 'suggestion-category-home-hvac',
+      message: 'Check your HVAC filter—it should be replaced every 1-3 months',
+      type: 'tip',
+      relevance: 8,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Taxes & Finance - Tax season reminder (January-April)
+  if (suggestions.length === 0 && trackedCategories.includes('Taxes & Finance') && (currentMonth >= 0 && currentMonth <= 3)) {
+    suggestions.push({
+      id: 'suggestion-category-tax-season',
+      message: 'Tax season is here—start gathering your documents and receipts',
+      type: 'action',
+      relevance: 9,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Travel - Passport check
+  if (suggestions.length === 0 && trackedCategories.includes('Travel')) {
+    suggestions.push({
+      id: 'suggestion-category-travel-passport',
+      message: 'Planning to travel? Check your passport expiry—many countries require 6 months validity',
+      type: 'tip',
+      relevance: 8,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Subscriptions - Review subscriptions
+  if (suggestions.length === 0 && trackedCategories.includes('Subscriptions')) {
+    suggestions.push({
+      id: 'suggestion-category-subscriptions-review',
+      message: 'Review your subscriptions—are you using all of them?',
+      type: 'action',
+      relevance: 7,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Warranties - Document warranties
+  if (suggestions.length === 0 && trackedCategories.includes('Warranties')) {
+    suggestions.push({
+      id: 'suggestion-category-warranties-organize',
+      message: 'Keep track of your warranties—take photos and store them digitally',
+      type: 'tip',
+      relevance: 7,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Insurance - Annual review
+  if (suggestions.length === 0 && trackedCategories.includes('Insurance')) {
+    suggestions.push({
+      id: 'suggestion-category-insurance-review',
+      message: 'Review your insurance policies annually to ensure adequate coverage',
+      type: 'tip',
+      relevance: 8,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Personal - Generic organization tip
+  if (suggestions.length === 0 && trackedCategories.includes('Personal')) {
+    suggestions.push({
+      id: 'suggestion-category-personal-organize',
+      message: 'Start organizing—add your first task to stay on track',
+      type: 'tip',
+      relevance: 6,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Default fallback if no categories matched
+  if (suggestions.length === 0) {
+    suggestions.push({
+      id: 'suggestion-category-default',
+      message: 'Welcome to OnTrack! Add your first task to get started',
+      type: 'tip',
+      relevance: 5,
+      dismissed: false,
+      createdAt: now,
+    });
+  }
+
+  // Return only the first (highest priority) suggestion
+  return suggestions.slice(0, 1);
+};
+
 export const generateSuggestions = (tasks: Task[], categories: Category[]): Suggestion[] => {
   const suggestions: Suggestion[] = [];
   const now = new Date();
@@ -15,7 +148,7 @@ export const generateSuggestions = (tasks: Task[], categories: Category[]): Sugg
       if (task.title.toLowerCase().includes('japan') || task.title.toLowerCase().includes('travel')) {
         suggestions.push({
           id: `suggestion-${task.id}-passport`,
-          message: `Your trip is in ${daysUntil} days—check your passport expiry and visa requirements`,
+          message: `Your trip is in ${daysUntil} days—check your passport expiry, visa requirements, and travel insurance`,
           type: 'tip',
           relatedTaskId: task.id,
           relevance: daysUntil <= 30 ? 10 : 7,
