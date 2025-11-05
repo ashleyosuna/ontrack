@@ -4,24 +4,37 @@ import { Dashboard } from './components/Dashboard';
 import { CategoryView } from './components/CategoryView';
 import { TaskForm } from './components/TaskForm';
 import { Settings } from './components/Settings';
+import { RemindersView } from './components/RemindersView';
+import { CategoryIcon } from './components/CategoryIcon';
+import { TemplateSelectionDialog } from './components/TemplateSelectionDialog';
+import { TaskCreationModeDialog } from './components/TaskCreationModeDialog';
+import { TemplateForm } from './components/TemplateForm';
 import { Button } from './components/ui/button';
-import { Home, List, Plus, Settings as SettingsIcon, Sparkles } from 'lucide-react';
-import { Toaster, toast } from 'sonner@2.0.3';
-import { Category, Task, Suggestion, UserProfile, DEFAULT_CATEGORIES } from './types';
+import { Home, List, Plus, Settings as SettingsIcon, Sparkles, CheckCircle, Bell } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
+import { Category, Task, Suggestion, UserProfile, Template, DEFAULT_CATEGORIES } from './types';
 import { storage } from './utils/storage';
-import { generateSuggestions } from './utils/assistant';
+import { generateSuggestions, generateCategoryBasedSuggestions } from './utils/assistant';
+import { generateDemoTasks } from './utils/demoData';
 
-type View = 'dashboard' | 'categories' | 'category' | 'add-task' | 'edit-task' | 'settings';
+type View = 'dashboard' | 'categories' | 'category' | 'add-task' | 'edit-task' | 'settings' | 'reminders' | 'create-template' | 'edit-template';
 
 export default function App() {
+  console.log("test");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Omit<Template, 'id' | 'createdAt'> | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [showModeDialog, setShowModeDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [previousView, setPreviousView] = useState<View>('dashboard');
 
   // Initialize app
   useEffect(() => {
@@ -29,26 +42,54 @@ export default function App() {
     const savedCategories = storage.getCategories();
     const savedTasks = storage.getTasks();
     const savedSuggestions = storage.getSuggestions();
+    const savedTemplates = storage.getTemplates();
 
-    // Auto-initialize with all categories if first time
+    // First time user - don't auto-initialize, let them go through onboarding
     if (!profile) {
-      const newProfile: UserProfile = {
-        trackedCategories: DEFAULT_CATEGORIES.map(c => c.name),
-        hasCompletedOnboarding: true,
-        calendarIntegration: true,
-        notificationsEnabled: true,
-      };
-      setUserProfile(newProfile);
-      storage.saveUserProfile(newProfile);
+      setIsInitialized(true);
+      return;
+    }
+    
+    // Migrate old profiles
+    let migratedProfile = { ...profile };
+    let needsMigration = false;
+    
+    // Migrate demoMode field
+    if (migratedProfile.demoMode === undefined) {
+      migratedProfile.demoMode = false;
+      needsMigration = true;
+    }
+    
+    // Migrate from trackedCategories to preferredCategories + hiddenCategories
+    if ('trackedCategories' in migratedProfile && !('preferredCategories' in migratedProfile)) {
+      const oldProfile = migratedProfile as any;
+      migratedProfile.preferredCategories = oldProfile.trackedCategories || [];
+      migratedProfile.hiddenCategories = [];
       
-      // Initialize all categories
-      const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      // Add any missing predefined categories
+      const missingCategories = DEFAULT_CATEGORIES.filter(
+        (defCat) => !savedCategories.find((c) => c.name === defCat.name)
+      ).map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
       }));
-      setCategories(initialCategories);
-      storage.saveCategories(initialCategories);
-      toast.success('Welcome to OnTrack! 🎉');
+      
+      if (missingCategories.length > 0) {
+        const allCategories = [...savedCategories, ...missingCategories];
+        setCategories(allCategories);
+        storage.saveCategories(allCategories);
+      }
+      
+      needsMigration = true;
+    }
+    
+    if (needsMigration) {
+      setUserProfile(migratedProfile);
+      storage.saveUserProfile(migratedProfile);
+      // Categories were already set in migration if needed
+      if (savedCategories.length > 0 && categories.length === 0) {
+        setCategories(savedCategories);
+      }
     } else {
       setUserProfile(profile);
       if (savedCategories.length > 0) {
@@ -58,10 +99,11 @@ export default function App() {
 
     setTasks(savedTasks);
     setSuggestions(savedSuggestions);
+    setTemplates(savedTemplates);
     setIsInitialized(true);
   }, []);
 
-  // Generate suggestions when tasks change
+  // Generate task-based suggestions when tasks exist
   useEffect(() => {
     if (categories.length > 0 && tasks.length > 0) {
       const newSuggestions = generateSuggestions(tasks, categories);
@@ -75,75 +117,36 @@ export default function App() {
     }
   }, [tasks, categories]);
 
-  // Add mock calendar tasks if calendar integration is enabled
+  // Generate category-based suggestions when user has no tasks (normal mode only)
   useEffect(() => {
-    if (userProfile?.calendarIntegration && tasks.length === 0 && categories.length > 0) {
-      const travelCategory = categories.find((c) => c.name === 'Travel');
-      const healthCategory = categories.find((c) => c.name === 'Health');
-      
-      if (travelCategory || healthCategory) {
-        const mockTasks: Task[] = [];
-        
-        if (travelCategory) {
-          mockTasks.push({
-            id: `task-${Date.now()}-1`,
-            title: 'Travel to Japan',
-            description: 'Summer vacation trip to Tokyo and Kyoto',
-            date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
-            categoryId: travelCategory.id,
-            attachments: [],
-            completed: false,
-            notes: 'Book flights and accommodation',
-            reminders: [],
-            createdAt: new Date(),
-          });
-        }
-        
-        if (healthCategory) {
-          mockTasks.push({
-            id: `task-${Date.now()}-2`,
-            title: 'Dental Checkup',
-            description: 'Regular biannual dental cleaning and checkup',
-            date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-            categoryId: healthCategory.id,
-            attachments: [],
-            completed: false,
-            notes: 'Dr. Smith - Downtown Dental',
-            reminders: [],
-            createdAt: new Date(),
-          });
-        }
-        
-        if (mockTasks.length > 0) {
-          setTasks(mockTasks);
-          storage.saveTasks(mockTasks);
-          toast.success('Calendar events imported successfully!');
-        }
-      }
+    if (!userProfile?.demoMode && userProfile?.hasCompletedOnboarding && tasks.length === 0 && categories.length > 0 && isInitialized) {
+      const categorySuggestions = generateCategoryBasedSuggestions(categories, userProfile.preferredCategories);
+      setSuggestions(categorySuggestions);
+      storage.saveSuggestions(categorySuggestions);
     }
-  }, [userProfile?.calendarIntegration, categories]);
+  }, [userProfile?.demoMode, userProfile?.hasCompletedOnboarding, userProfile?.preferredCategories, tasks.length, categories.length, isInitialized]);
 
   const handleOnboardingComplete = (data: {
-    trackedCategories: string[];
+    preferredCategories: string[];
     age?: string;
     gender?: string;
   }) => {
     const profile: UserProfile = {
-      trackedCategories: data.trackedCategories,
+      preferredCategories: data.preferredCategories,
+      hiddenCategories: [],
       age: data.age,
       gender: data.gender,
       hasCompletedOnboarding: true,
       calendarIntegration: true,
       notificationsEnabled: true,
+      demoMode: false,
     };
 
-    // Initialize categories based on tracked categories
-    const initialCategories = DEFAULT_CATEGORIES
-      .filter((cat) => data.trackedCategories.includes(cat.name))
-      .map((cat, index) => ({
-        ...cat,
-        id: `category-${Date.now()}-${index}`,
-      }));
+    // Initialize ALL predefined categories (show all by default)
+    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      ...cat,
+      id: `category-${Date.now()}-${index}`,
+    }));
 
     setUserProfile(profile);
     setCategories(initialCategories);
@@ -152,7 +155,79 @@ export default function App() {
     toast.success('Welcome to OnTrack! 🎉');
   };
 
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleDemoMode = () => {
+    // Initialize with all categories and demo mode enabled
+    const profile: UserProfile = {
+      preferredCategories: DEFAULT_CATEGORIES.map(c => c.name),
+      hiddenCategories: [],
+      hasCompletedOnboarding: true,
+      calendarIntegration: true,
+      notificationsEnabled: true,
+      demoMode: true,
+    };
+
+    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      ...cat,
+      id: `category-${Date.now()}-${index}`,
+    }));
+
+    const demoTasks = generateDemoTasks(initialCategories);
+
+    setUserProfile(profile);
+    setCategories(initialCategories);
+    setTasks(demoTasks);
+    storage.saveUserProfile(profile);
+    storage.saveCategories(initialCategories);
+    storage.saveTasks(demoTasks);
+    
+    // Navigate to dashboard
+    setCurrentView('dashboard');
+    toast.success('Welcome to Demo Mode! 🎉');
+  };
+
+  const handleToggleDemoMode = (enabled: boolean) => {
+    if (!userProfile) return;
+
+    if (enabled) {
+      // Turn ON demo mode - load all categories and demo data
+      const updatedProfile = { 
+        ...userProfile, 
+        demoMode: true,
+        preferredCategories: DEFAULT_CATEGORIES.map(c => c.name),
+        hiddenCategories: [],
+      };
+      
+      // Create all categories
+      const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+        ...cat,
+        id: `category-${Date.now()}-${index}`,
+      }));
+      
+      const demoTasks = generateDemoTasks(allCategories);
+      
+      setUserProfile(updatedProfile);
+      setCategories(allCategories);
+      setTasks(demoTasks);
+      storage.saveUserProfile(updatedProfile);
+      storage.saveCategories(allCategories);
+      storage.saveTasks(demoTasks);
+      
+      // Navigate to dashboard
+      setCurrentView('dashboard');
+      toast.success('Demo mode enabled! Sample tasks loaded.');
+    } else {
+      // Turn OFF demo mode - clear everything and return to onboarding
+      localStorage.clear();
+      setUserProfile(null);
+      setCategories([]);
+      setTasks([]);
+      setSuggestions([]);
+      setCurrentView('dashboard');
+      toast.success('Demo mode disabled. Starting fresh!');
+    }
+  };
+
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>, saveAsTemplate?: boolean, templateName?: string) => {
     const newTask: Task = {
       ...taskData,
       id: `task-${Date.now()}`,
@@ -162,9 +237,32 @@ export default function App() {
     const updatedTasks = [...tasks, newTask];
     setTasks(updatedTasks);
     storage.saveTasks(updatedTasks);
+
+    // Save as template if requested
+    if (saveAsTemplate && templateName) {
+      const newTemplate: Template = {
+        id: `template-${Date.now()}`,
+        name: templateName,
+        categoryId: taskData.categoryId,
+        title: taskData.title,
+        description: taskData.description,
+        notes: taskData.notes,
+        reminders: taskData.reminders,
+        isPreset: false,
+        createdAt: new Date(),
+      };
+
+      const updatedTemplates = [...templates, newTemplate];
+      setTemplates(updatedTemplates);
+      storage.saveTemplates(updatedTemplates);
+      toast.success('Task created and saved as template!');
+    } else {
+      toast.success('Task created successfully!');
+    }
+
     setCurrentView('dashboard');
     setSelectedCategoryId(null);
-    toast.success('Task created successfully!');
+    setSelectedTemplate(null);
   };
 
   const handleEditTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
@@ -193,8 +291,112 @@ export default function App() {
   };
 
   const handleToggleTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const wasCompleted = task.completed;
+    const now = new Date();
+    
+    let updatedTasks = [...tasks];
+
+    if (!wasCompleted) {
+      // Mark task as completed with timestamp
+      updatedTasks = tasks.map((t) =>
+        t.id === taskId ? { ...t, completed: true, completedAt: now } : t
+      );
+
+      // Check if task has recurring reminders
+      const hasRecurringReminders = task.reminders.some(
+        r => r.enabled && r.frequency !== 'once'
+      );
+
+      if (hasRecurringReminders) {
+        // Create a new task for the next occurrence
+        const nextDate = calculateNextDate(task.date, task.reminders[0].frequency);
+        
+        // Add current completion to history
+        const completionRecord = {
+          id: task.id,
+          completedAt: now,
+          date: task.date,
+        };
+
+        const newTask: Task = {
+          ...task,
+          id: `task-${Date.now()}`,
+          date: nextDate,
+          completed: false,
+          completedAt: undefined,
+          createdAt: new Date(),
+          previousCompletions: [
+            ...(task.previousCompletions || []),
+            completionRecord,
+          ].slice(-5), // Keep only last 5 completions
+        };
+
+        updatedTasks.push(newTask);
+      }
+    } else {
+      // Uncomplete task - remove completion timestamp
+      updatedTasks = tasks.map((t) =>
+        t.id === taskId ? { ...t, completed: false, completedAt: undefined } : t
+      );
+    }
+    
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+
+    // Show confirmation toast with undo action
+    if (!wasCompleted) {
+      const hasRecurring = task.reminders.some(r => r.enabled && r.frequency !== 'once');
+      toast.success(hasRecurring ? 'Task completed! Next occurrence created 🎉' : 'Task completed! 🎉', {
+        duration: 4000,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            // Undo the completion and remove new task if created
+            let revertedTasks = tasks.map((t) =>
+              t.id === taskId ? { ...t, completed: false, completedAt: undefined } : t
+            );
+            // Remove the newly created recurring task if it exists
+            if (hasRecurring) {
+              revertedTasks = revertedTasks.filter(t => 
+                !(t.previousCompletions?.some(c => c.id === taskId))
+              );
+            }
+            setTasks(revertedTasks);
+            storage.saveTasks(revertedTasks);
+            toast.info('Task marked as incomplete');
+          },
+        },
+      });
+    } else {
+      toast.info('Task marked as incomplete');
+    }
+  };
+
+  // Helper function to calculate next date based on frequency
+  const calculateNextDate = (currentDate: Date, frequency: string): Date => {
+    const next = new Date(currentDate);
+    switch (frequency) {
+      case 'daily':
+        next.setDate(next.getDate() + 1);
+        break;
+      case 'weekly':
+        next.setDate(next.getDate() + 7);
+        break;
+      case 'monthly':
+        next.setMonth(next.getMonth() + 1);
+        break;
+      default:
+        next.setDate(next.getDate() + 1);
+    }
+    return next;
+  };
+
+  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
     const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
+      task.id === taskId ? { ...task, ...updates } : task
     );
     setTasks(updatedTasks);
     storage.saveTasks(updatedTasks);
@@ -258,7 +460,83 @@ export default function App() {
   const navigateToAddTask = (categoryId?: string) => {
     setSelectedCategoryId(categoryId || null);
     setSelectedTaskId(null);
+    setSelectedTemplate(null);
+    setShowModeDialog(true);
+  };
+
+  const handleModeSelected = (mode: 'quick' | 'template' | 'create-template') => {
+    if (mode === 'quick') {
+      // Go directly to TaskForm (start from scratch)
+      setCurrentView('add-task');
+    } else if (mode === 'template') {
+      // Open template selection dialog
+      setShowTemplateDialog(true);
+    } else {
+      // Create new template
+      setPreviousView(currentView);
+      setCurrentView('create-template');
+    }
+  };
+
+  const handleTemplateSelected = (template: Omit<Template, 'id' | 'createdAt'> | null) => {
+    setSelectedTemplate(template);
+    setShowTemplateDialog(false);
+    
+    // If template is selected, use its categoryId, otherwise use the selected category
+    if (template) {
+      setSelectedCategoryId(template.categoryId);
+    }
+    
     setCurrentView('add-task');
+  };
+
+  const handleAddTemplate = (templateData: Omit<Template, 'id' | 'createdAt'>) => {
+    const newTemplate: Template = {
+      ...templateData,
+      id: `template-${Date.now()}`,
+      createdAt: new Date(),
+    };
+
+    const updatedTemplates = [...templates, newTemplate];
+    setTemplates(updatedTemplates);
+    storage.saveTemplates(updatedTemplates);
+    toast.success('Template created successfully!');
+    setCurrentView('dashboard');
+  };
+
+  const handleEditTemplate = (templateData: Omit<Template, 'id' | 'createdAt'>) => {
+    if (!selectedTemplateId) return;
+
+    const updatedTemplates = templates.map((template) =>
+      template.id === selectedTemplateId
+        ? { ...template, ...templateData }
+        : template
+    );
+
+    setTemplates(updatedTemplates);
+    storage.saveTemplates(updatedTemplates);
+    setCurrentView('settings');
+    setSelectedTemplateId(null);
+    toast.success('Template updated successfully!');
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    const updatedTemplates = templates.filter(t => t.id !== templateId);
+    setTemplates(updatedTemplates);
+    storage.saveTemplates(updatedTemplates);
+    toast.success('Template deleted successfully!');
+    
+    // If we're in edit view, go back to settings
+    if (currentView === 'edit-template') {
+      setCurrentView('settings');
+      setSelectedTemplateId(null);
+    }
+  };
+
+  const navigateToEditTemplate = (templateId: string) => {
+    setPreviousView(currentView);
+    setSelectedTemplateId(templateId);
+    setCurrentView('edit-template');
   };
 
   const navigateToEditTask = (taskId: string) => {
@@ -281,13 +559,26 @@ export default function App() {
     setSelectedCategoryId(null);
   };
 
+  const navigateToReminders = () => {
+    setCurrentView('reminders');
+    setSelectedCategoryId(null);
+    setSelectedTaskId(null);
+  };
+
+  const navigateToPreviousView = () => {
+    setCurrentView(previousView);
+    if (previousView === 'settings') {
+      setSelectedTemplateId(null);
+    }
+  };
+
   // Wait for initialization to complete
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Sparkles className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+          <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" />
+          <p className="text-[#4338CA]">Loading...</p>
         </div>
       </div>
     );
@@ -299,19 +590,26 @@ export default function App() {
     ? tasks.filter((t) => t.categoryId === selectedCategoryId).sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
+  // Show onboarding if not completed
+  if (!userProfile?.hasCompletedOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
+  }
+
   // Check if we're on a main view (for bottom nav)
-  const isMainView = ['dashboard', 'categories', 'settings'].includes(currentView);
+  const isMainView = ['dashboard', 'categories', 'category', 'settings', 'reminders'].includes(currentView);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
+    <div className="min-h-screen bg-[#F8FAFC] pb-20">
       <Toaster position="top-center" />
       
       {/* Mobile Header */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
+      <header className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm">
         <div className="px-4 py-4">
-          <div className="flex items-center justify-center gap-2">
-            <Sparkles className="h-6 w-6 text-blue-600" />
-            <h2>OnTrack</h2>
+          <div className="flex items-center justify-center">
+            <h2 className="text-[#F8FAFC] text-3xl relative">
+              <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
+              OnTrack
+            </h2>
           </div>
         </div>
       </header>
@@ -328,43 +626,50 @@ export default function App() {
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
             onSuggestionFeedback={handleSuggestionFeedback}
+            onUpdateTask={handleUpdateTask}
           />
         )}
 
-        {currentView === 'categories' && (
+        {currentView === 'categories' && userProfile && (
           <div className="space-y-4">
-            <h1>Categories</h1>
+            <h1 className="text-[#312E81] text-2xl font-bold">Categories</h1>
             <div className="grid grid-cols-2 gap-3">
               {/* Completed Tasks Category */}
               <div
-                className="bg-white rounded-2xl p-6 cursor-pointer transition-all active:scale-95 shadow-sm border-t-4 border-green-500"
+                className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm border-t-4 border-green-500"
                 onClick={() => {
                   setSelectedCategoryId('completed');
                   setCurrentView('category');
                 }}
               >
-                <div className="text-center space-y-2">
-                  <div className="text-5xl mb-2">✅</div>
-                  <h4 className="text-sm">Completed</h4>
-                  <p className="text-xs text-muted-foreground">
+                <div className="text-center space-y-1.5">
+                  <div className="mb-1 flex justify-center">
+                    <CheckCircle style={{ width: '48px', height: '48px' }} className="text-green-500" />
+                  </div>
+                  <h4 className="text-sm text-[#312E81]">Completed</h4>
+                  <p className="text-xs text-[#4C4799]">
                     {tasks.filter((t) => t.completed).length} tasks
                   </p>
                 </div>
               </div>
 
-              {categories.map((category) => {
+              {categories
+                .filter((category) => !userProfile.hiddenCategories.includes(category.name))
+                .map((category) => {
                 const categoryTaskCount = tasks.filter((t) => t.categoryId === category.id && !t.completed).length;
                 return (
                   <div
                     key={category.id}
-                    className="bg-white rounded-2xl p-6 cursor-pointer transition-all active:scale-95 shadow-sm"
+                    className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm"
                     onClick={() => navigateToCategory(category.id)}
                     style={{ borderTop: `4px solid ${category.color}` }}
                   >
-                    <div className="text-center space-y-2">
-                      <div className="text-5xl mb-2">{category.icon}</div>
-                      <h4 className="text-sm">{category.name}</h4>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="text-center space-y-1.5">
+                      <div className="mb-1 flex justify-center">
+                        <CategoryIcon iconName={category.icon} size={48} color={category.color} />
+                      </div>
+                      <h4 className="text-sm text-[#312E81]">{category.name}</h4>
+                      <p className="text-xs text-[#4C4799]">
                         {categoryTaskCount} {categoryTaskCount === 1 ? 'task' : 'tasks'}
                       </p>
                     </div>
@@ -380,7 +685,7 @@ export default function App() {
             category={{
               id: 'completed',
               name: 'Completed Tasks',
-              icon: '✅',
+              icon: 'CheckCircle',
               color: '#6EE7B7',
               isCustom: false,
             }}
@@ -407,8 +712,17 @@ export default function App() {
           <TaskForm
             categories={categories}
             onSave={handleAddTask}
-            onCancel={() => selectedCategoryId ? setCurrentView('category') : navigateToDashboard()}
+            onCancel={() => {
+              setSelectedTemplate(null);
+              selectedCategoryId ? setCurrentView('category') : navigateToDashboard();
+            }}
             defaultCategoryId={selectedCategoryId || undefined}
+            templateData={selectedTemplate ? {
+              title: selectedTemplate.title,
+              description: selectedTemplate.description,
+              notes: selectedTemplate.notes,
+              reminders: selectedTemplate.reminders,
+            } : undefined}
           />
         )}
 
@@ -422,7 +736,7 @@ export default function App() {
           />
         )}
 
-        {currentView === 'settings' && (
+        {currentView === 'settings' && userProfile && (
           <Settings
             categories={categories}
             userProfile={userProfile}
@@ -430,20 +744,53 @@ export default function App() {
             onUpdateProfile={handleUpdateProfile}
             onAddCategory={handleAddCategory}
             onDeleteCategory={handleDeleteCategory}
+            tasks={tasks}
+            onToggleDemoMode={handleToggleDemoMode}
+            templates={templates}
+            onEditTemplate={navigateToEditTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+          />
+        )}
+
+        {currentView === 'reminders' && (
+          <RemindersView
+            tasks={tasks}
+            categories={categories}
+            onToggleTask={handleToggleTask}
+            onEditTask={navigateToEditTask}
+          />
+        )}
+
+        {currentView === 'create-template' && (
+          <TemplateForm
+            categories={categories}
+            onSave={handleAddTemplate}
+            onCancel={navigateToPreviousView}
+            defaultCategoryId={selectedCategoryId || undefined}
+          />
+        )}
+
+        {currentView === 'edit-template' && selectedTemplateId && (
+          <TemplateForm
+            template={templates.find(t => t.id === selectedTemplateId)}
+            categories={categories}
+            onSave={handleEditTemplate}
+            onCancel={navigateToPreviousView}
+            onDelete={handleDeleteTemplate}
           />
         )}
       </main>
 
       {/* Bottom Navigation */}
       {isMainView && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
-          <div className="grid grid-cols-3 max-w-2xl mx-auto">
+        <nav className="fixed bottom-0 left-0 right-0 bg-[#2C7A7B] border-t border-[#236767] shadow-lg z-20">
+          <div className="grid grid-cols-4 max-w-2xl mx-auto">
             <button
               onClick={navigateToDashboard}
               className={`flex flex-col items-center justify-center py-3 transition-colors ${
                 currentView === 'dashboard'
-                  ? 'text-blue-600'
-                  : 'text-gray-600'
+                  ? 'text-[#312E81]'
+                  : 'text-[#A8D5D7]'
               }`}
             >
               <Home className="h-6 w-6 mb-1" />
@@ -454,8 +801,8 @@ export default function App() {
               onClick={navigateToCategories}
               className={`flex flex-col items-center justify-center py-3 transition-colors ${
                 currentView === 'categories'
-                  ? 'text-blue-600'
-                  : 'text-gray-600'
+                  ? 'text-[#312E81]'
+                  : 'text-[#A8D5D7]'
               }`}
             >
               <List className="h-6 w-6 mb-1" />
@@ -463,11 +810,23 @@ export default function App() {
             </button>
 
             <button
+              onClick={navigateToReminders}
+              className={`flex flex-col items-center justify-center py-3 transition-colors ${
+                currentView === 'reminders'
+                  ? 'text-[#312E81]'
+                  : 'text-[#A8D5D7]'
+              }`}
+            >
+              <Bell className="h-6 w-6 mb-1" />
+              <span className="text-xs">Reminders</span>
+            </button>
+
+            <button
               onClick={navigateToSettings}
               className={`flex flex-col items-center justify-center py-3 transition-colors ${
                 currentView === 'settings'
-                  ? 'text-blue-600'
-                  : 'text-gray-600'
+                  ? 'text-[#312E81]'
+                  : 'text-[#A8D5D7]'
               }`}
             >
               <SettingsIcon className="h-6 w-6 mb-1" />
@@ -481,11 +840,29 @@ export default function App() {
       {(currentView === 'dashboard' || currentView === 'categories') && (
         <button
           onClick={() => navigateToAddTask()}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-all active:scale-95 z-10"
+          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">New Task</span>
         </button>
       )}
+
+      {/* Task Creation Mode Dialog */}
+      <TaskCreationModeDialog
+        open={showModeDialog}
+        onOpenChange={setShowModeDialog}
+        onSelectMode={handleModeSelected}
+      />
+
+      {/* Template Selection Dialog */}
+      <TemplateSelectionDialog
+        open={showTemplateDialog}
+        onOpenChange={setShowTemplateDialog}
+        categories={categories}
+        customTemplates={templates}
+        onSelectTemplate={handleTemplateSelected}
+        onDeleteTemplate={handleDeleteTemplate}
+      />
     </div>
   );
 }
