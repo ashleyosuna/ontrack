@@ -1,14 +1,34 @@
-import { useState } from 'react';
-import { Task, Category, Suggestion } from '../types';
-import { CategoryIcon } from './CategoryIcon';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Plus, Calendar, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
-import { formatDistanceToNow, format, isToday, isTomorrow, isPast, formatDistanceStrict } from 'date-fns';
-import { CalendarView } from './CalendarView';
-import { TaskDetailDialog } from './TaskDetailDialog';
+import { useState } from "react";
+import { Task, Category, Suggestion } from "../types";
+import { CategoryIcon } from "./CategoryIcon";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
+import {
+  Plus,
+  Calendar,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  List,
+} from "lucide-react";
+import {
+  formatDistanceToNow,
+  format,
+  isToday,
+  isTomorrow,
+  isPast,
+  formatDistanceStrict,
+} from "date-fns";
+import { CalendarView } from "./CalendarView";
+import { TaskDetailDialog } from "./TaskDetailDialog";
 
 interface DashboardProps {
   tasks: Task[];
@@ -18,7 +38,10 @@ interface DashboardProps {
   onNavigateToAddTask: () => void;
   onToggleTask: (taskId: string) => void;
   onDismissSuggestion: (suggestionId: string) => void;
-  onSuggestionFeedback: (suggestionId: string, feedback: 'more' | 'less') => void;
+  onSuggestionFeedback: (
+    suggestionId: string,
+    feedback: "more" | "less"
+  ) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
 }
 
@@ -41,35 +64,37 @@ export function Dashboard({
     setSelectedTask(task);
     setShowTaskDetail(true);
   };
-  
+
   const upcomingTasks = tasks
     .filter((task) => !task.completed && task.date >= new Date())
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 5);
 
   const overdueTasks = tasks
-    .filter((task) => !task.completed && isPast(task.date) && !isToday(task.date))
+    .filter(
+      (task) => !task.completed && isPast(task.date) && !isToday(task.date)
+    )
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const activeSuggestions = suggestions
-    .filter((s) => !s.dismissed)
-    .slice(0, 3);
+  const activeSuggestions = suggestions.filter((s) => !s.dismissed).slice(0, 3);
 
   const getCategoryById = (categoryId: string) => {
     return categories.find((c) => c.id === categoryId);
   };
 
   const formatTaskDate = (date: Date) => {
-    if (isToday(date)) return 'Today';
-    if (isTomorrow(date)) return 'Tomorrow';
-    return format(date, 'MMM d, yyyy');
+    if (isToday(date)) return "Today";
+    if (isTomorrow(date)) return "Tomorrow";
+    return format(date, "MMM d, yyyy");
   };
 
   return (
     <div className="space-y-5">
       {/* Welcome Section */}
       <div>
-        <h1 className="mb-1 text-[#312E81] text-2xl font-bold">Welcome back!</h1>
+        <h1 className="mb-1 text-[#312E81] text-2xl font-bold">
+          Welcome back!
+        </h1>
         <p className="text-[#4C4799]">Here's what needs your attention</p>
       </div>
 
@@ -83,19 +108,21 @@ export function Dashboard({
               <p className="text-xs text-[#4C4799]">Tips from your assistant</p>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             {activeSuggestions.map((suggestion) => (
               <div
                 key={suggestion.id}
                 className="bg-white rounded-xl p-3 shadow-sm"
               >
-                <p className="text-sm mb-3 text-[#312E81]">{suggestion.message}</p>
+                <p className="text-sm mb-3 text-[#312E81]">
+                  {suggestion.message}
+                </p>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => onSuggestionFeedback(suggestion.id, 'more')}
+                    onClick={() => onSuggestionFeedback(suggestion.id, "more")}
                     className="flex-1 text-xs h-8 text-[#312E81]"
                   >
                     👍 More
@@ -103,7 +130,7 @@ export function Dashboard({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => onSuggestionFeedback(suggestion.id, 'less')}
+                    onClick={() => onSuggestionFeedback(suggestion.id, "less")}
                     className="flex-1 text-xs h-8 text-[#312E81]"
                   >
                     👎 Less
@@ -136,11 +163,13 @@ export function Dashboard({
           <div className="space-y-2">
             {overdueTasks.map((task) => {
               const category = getCategoryById(task.categoryId);
-              const daysOverdue = formatDistanceStrict(task.date, new Date(), { unit: 'day' });
-              
+              const daysOverdue = formatDistanceStrict(task.date, new Date(), {
+                unit: "day",
+              });
+
               return (
-                <div 
-                  key={task.id} 
+                <div
+                  key={task.id}
                   className="bg-red-50 rounded-xl p-4 shadow-sm border-l-4 border-red-500 active:scale-[0.98] transition-transform cursor-pointer"
                   onClick={() => handleTaskClick(task)}
                 >
@@ -158,13 +187,19 @@ export function Dashboard({
                         <Circle className="h-5 w-5" />
                       )}
                     </button>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {category && (
-                          <CategoryIcon iconName={category.icon} size={18} color={category.color} />
+                          <CategoryIcon
+                            iconName={category.icon}
+                            size={18}
+                            color={category.color}
+                          />
                         )}
-                        <h4 className="text-sm truncate text-[#312E81]">{task.title}</h4>
+                        <h4 className="text-sm truncate text-[#312E81]">
+                          {task.title}
+                        </h4>
                       </div>
                       {task.description && (
                         <p className="text-xs text-[#4C4799] line-clamp-1 mb-2">
@@ -174,9 +209,12 @@ export function Dashboard({
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="flex items-center gap-1 text-xs text-red-700">
                           <Calendar className="h-3 w-3" />
-                          <span>{format(task.date, 'MMM d, yyyy')}</span>
+                          <span>{format(task.date, "MMM d, yyyy")}</span>
                         </div>
-                        <Badge variant="outline" className="text-xs bg-red-100 text-red-700 border-red-300">
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-red-100 text-red-700 border-red-300"
+                        >
                           {daysOverdue} overdue
                         </Badge>
                       </div>
@@ -193,24 +231,42 @@ export function Dashboard({
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[#312E81]">Upcoming Tasks</h3>
-          <button
-            onClick={() => setShowCalendar(true)}
-            className="text-[#2C7A7B] active:text-[#236767] transition-colors"
-          >
-            <Calendar className="h-5 w-5" />
-          </button>
+          <span>
+            <button
+              onClick={() => {
+                setShowCalendar(false);
+              }}
+              className={`transition-colors p-2 rounded-xl ${
+                !showCalendar ? "bg-primary/50 text-white" : ""
+              }`}
+            >
+              <List className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => {
+                setShowCalendar(true);
+              }}
+              className={`transition-colors p-2 rounded-xl ${
+                showCalendar ? "bg-primary/50 text-white" : ""
+              }`}
+            >
+              <Calendar className="h-6 w-6" />
+            </button>
+          </span>
         </div>
         {upcomingTasks.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-            <p className="text-[#4C4799] text-sm">No upcoming tasks. You're all set! 🎉</p>
+            <p className="text-[#4C4799] text-sm">
+              No upcoming tasks. You're all set! 🎉
+            </p>
           </div>
-        ) : (
+        ) : !showCalendar ? (
           <div className="space-y-2">
             {upcomingTasks.map((task) => {
               const category = getCategoryById(task.categoryId);
               return (
-                <div 
-                  key={task.id} 
+                <div
+                  key={task.id}
                   className="bg-white rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
                   onClick={() => handleTaskClick(task)}
                 >
@@ -228,13 +284,19 @@ export function Dashboard({
                         <Circle className="h-5 w-5" />
                       )}
                     </button>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {category && (
-                          <CategoryIcon iconName={category.icon} size={18} color={category.color} />
+                          <CategoryIcon
+                            iconName={category.icon}
+                            size={18}
+                            color={category.color}
+                          />
                         )}
-                        <h4 className="text-sm truncate text-[#312E81]">{task.title}</h4>
+                        <h4 className="text-sm truncate text-[#312E81]">
+                          {task.title}
+                        </h4>
                       </div>
                       {task.description && (
                         <p className="text-xs text-[#4C4799] line-clamp-1 mb-2">
@@ -251,11 +313,17 @@ export function Dashboard({
               );
             })}
           </div>
+        ) : (
+          <CalendarView
+            tasks={tasks}
+            categories={categories}
+            onToggleTask={onToggleTask}
+          />
         )}
       </div>
 
       {/* Calendar Dialog */}
-      <Dialog open={showCalendar} onOpenChange={setShowCalendar}>
+      {/* <Dialog open={showCalendar} onOpenChange={setShowCalendar}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[#312E81]">Calendar</DialogTitle>
@@ -269,12 +337,14 @@ export function Dashboard({
             onToggleTask={onToggleTask}
           />
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Task Detail Dialog */}
       <TaskDetailDialog
         task={selectedTask}
-        category={selectedTask ? getCategoryById(selectedTask.categoryId) : undefined}
+        category={
+          selectedTask ? getCategoryById(selectedTask.categoryId) : undefined
+        }
         open={showTaskDetail}
         onOpenChange={setShowTaskDetail}
         onUpdateTask={onUpdateTask}
