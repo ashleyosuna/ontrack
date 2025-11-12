@@ -34,6 +34,7 @@ import {
   generateCategoryBasedSuggestions,
 } from "./utils/assistant";
 import { generateDemoTasks } from "./utils/demoData";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 type View =
   | "dashboard"
@@ -47,7 +48,6 @@ type View =
   | "edit-template";
 
 export default function App() {
-  console.log("test");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -138,6 +138,17 @@ export default function App() {
     setSuggestions(savedSuggestions);
     setTemplates(savedTemplates);
     setIsInitialized(true);
+
+    // requesting notifications permissions
+    async function requestPermissions() {
+      try {
+        const perm = await LocalNotifications.requestPermissions();
+        console.log("Permission:", perm);
+      } catch (err) {
+        console.error("Error requesting permission:", err);
+      }
+    }
+    requestPermissions();
   }, []);
 
   // Generate task-based suggestions when tasks exist
