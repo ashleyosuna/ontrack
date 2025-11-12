@@ -1,13 +1,20 @@
-import { useState } from 'react';
-import { Task, Category, Reminder } from '../types';
-import { CategoryIcon } from './CategoryIcon';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Bell, Plus, Edit2, Check, History } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import { AddReminderDialog } from './AddReminderDialog';
+import { useState } from "react";
+import { Task, Category, Reminder } from "../types";
+import { CategoryIcon } from "./CategoryIcon";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Bell, Plus, Edit2, Check, History } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { AddReminderDialog } from "./AddReminderDialog";
+import { scheduleNotification } from "../utils/notifications";
 
 interface TaskDetailDialogProps {
   task: Task | null;
@@ -25,14 +32,14 @@ export function TaskDetailDialog({
   onUpdateTask,
 }: TaskDetailDialogProps) {
   const [reminders, setReminders] = useState<Reminder[]>(task?.reminders || []);
-  const [notes, setNotes] = useState(task?.notes || '');
+  const [notes, setNotes] = useState(task?.notes || "");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [showAddReminderDialog, setShowAddReminderDialog] = useState(false);
 
   // Update local state when task changes
   if (task && (reminders !== task.reminders || notes !== task.notes)) {
     setReminders(task.reminders || []);
-    setNotes(task.notes || '');
+    setNotes(task.notes || "");
     setIsEditingNotes(false);
   }
 
@@ -50,7 +57,10 @@ export function TaskDetailDialog({
     }
   };
 
-  const addReminder = (time: Date, frequency: 'once' | 'daily' | 'weekly' | 'monthly' | 'custom') => {
+  const addReminder = async (
+    time: Date,
+    frequency: "once" | "daily" | "weekly" | "monthly" | "custom"
+  ) => {
     if (!task) return;
     const newReminder: Reminder = {
       id: `reminder-${Date.now()}`,
@@ -58,23 +68,24 @@ export function TaskDetailDialog({
       frequency,
       enabled: true,
     };
+    await scheduleNotification(task.title, task.description, frequency, time);
     handleUpdateReminders([...reminders, newReminder]);
   };
 
   const getFrequencyLabel = (frequency: string) => {
     switch (frequency) {
-      case 'once':
-        return 'Once';
-      case 'daily':
-        return 'Daily';
-      case 'weekly':
-        return 'Weekly';
-      case 'monthly':
-        return 'Monthly';
-      case 'custom':
-        return 'Custom';
+      case "once":
+        return "Once";
+      case "daily":
+        return "Daily";
+      case "weekly":
+        return "Weekly";
+      case "monthly":
+        return "Monthly";
+      case "custom":
+        return "Custom";
       default:
-        return 'Once';
+        return "Once";
     }
   };
 
@@ -87,7 +98,11 @@ export function TaskDetailDialog({
           <DialogHeader>
             <DialogTitle className="text-[#312E81] flex items-center gap-2">
               {category && (
-                <CategoryIcon iconName={category.icon} size={20} color={category.color} />
+                <CategoryIcon
+                  iconName={category.icon}
+                  size={20}
+                  color={category.color}
+                />
               )}
               {task.title}
             </DialogTitle>
@@ -105,7 +120,9 @@ export function TaskDetailDialog({
               </div>
               <div>
                 <Label className="text-xs text-[#4C4799]">Due Date</Label>
-                <p className="text-sm text-[#312E81] mt-1">{format(task.date, 'PPP')}</p>
+                <p className="text-sm text-[#312E81] mt-1">
+                  {format(task.date, "PPP")}
+                </p>
               </div>
             </div>
 
@@ -113,7 +130,9 @@ export function TaskDetailDialog({
             {task.description && (
               <div>
                 <Label className="text-xs text-[#4C4799]">Description</Label>
-                <p className="text-sm text-[#312E81] mt-1">{task.description}</p>
+                <p className="text-sm text-[#312E81] mt-1">
+                  {task.description}
+                </p>
               </div>
             )}
 
@@ -154,36 +173,48 @@ export function TaskDetailDialog({
                 />
               ) : (
                 <p className="text-sm text-[#312E81] bg-gray-50 rounded-lg p-3 min-h-[60px]">
-                  {notes || 'No notes added'}
+                  {notes || "No notes added"}
                 </p>
               )}
             </div>
 
             {/* Task History - Show if there are previous completions */}
-            {task.previousCompletions && task.previousCompletions.length > 0 && (
-              <div className="bg-blue-50 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 text-[#2C7A7B]" />
-                  <Label className="text-xs text-[#2C7A7B]">Previous Completions</Label>
+            {task.previousCompletions &&
+              task.previousCompletions.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-[#2C7A7B]" />
+                    <Label className="text-xs text-[#2C7A7B]">
+                      Previous Completions
+                    </Label>
+                  </div>
+                  <div className="space-y-1.5">
+                    {task.previousCompletions
+                      .slice(-3)
+                      .reverse()
+                      .map((completion, index) => (
+                        <div
+                          key={completion.id + index}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-[#312E81]">
+                            {format(completion.date, "MMM d, yyyy")}
+                          </span>
+                          <span className="text-[#4C4799]">
+                            {formatDistanceToNow(completion.completedAt, {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                  {task.previousCompletions.length > 3 && (
+                    <p className="text-xs text-[#4C4799] text-center pt-1">
+                      +{task.previousCompletions.length - 3} more
+                    </p>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  {task.previousCompletions.slice(-3).reverse().map((completion, index) => (
-                    <div
-                      key={completion.id + index}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <span className="text-[#312E81]">{format(completion.date, 'MMM d, yyyy')}</span>
-                      <span className="text-[#4C4799]">{formatDistanceToNow(completion.completedAt, { addSuffix: true })}</span>
-                    </div>
-                  ))}
-                </div>
-                {task.previousCompletions.length > 3 && (
-                  <p className="text-xs text-[#4C4799] text-center pt-1">
-                    +{task.previousCompletions.length - 3} more
-                  </p>
-                )}
-              </div>
-            )}
+              )}
 
             {/* Reminders Section */}
             <div className="space-y-3">
@@ -215,8 +246,11 @@ export function TaskDetailDialog({
                       <Bell className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <span className="block">
-                          Reminder: {format(reminder.time, 'PPP')} at {format(reminder.time, 'p')}
-                          <span className="text-[#4C4799] ml-2">- {getFrequencyLabel(reminder.frequency)}</span>
+                          Reminder: {format(reminder.time, "PPP")} at{" "}
+                          {format(reminder.time, "p")}
+                          <span className="text-[#4C4799] ml-2">
+                            - {getFrequencyLabel(reminder.frequency)}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -235,7 +269,9 @@ export function TaskDetailDialog({
                       key={index}
                       className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
                     >
-                      <span className="text-sm flex-1 truncate text-[#312E81]">{attachment}</span>
+                      <span className="text-sm flex-1 truncate text-[#312E81]">
+                        {attachment}
+                      </span>
                     </div>
                   ))}
                 </div>
