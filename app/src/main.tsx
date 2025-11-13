@@ -4,7 +4,6 @@ import App from "./App";
 import "./index.css";
 
 // quick dev console hint
-console.log("test");
 
 // ensure there's always a root element to mount into
 const rootElement =
@@ -40,8 +39,12 @@ class ErrorBoundary extends React.Component<
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
           <div className="text-center">
-            <h2 className="text-xl font-bold text-[#312E81] mb-2">Something went wrong</h2>
-            <p className="text-sm text-[#4C4799]">Check the developer console for error details.</p>
+            <h2 className="text-xl font-bold text-[#312E81] mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-sm text-[#4C4799]">
+              Check the developer console for error details.
+            </p>
           </div>
         </div>
       );

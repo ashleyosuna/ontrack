@@ -47,7 +47,6 @@ type View =
   | "edit-template";
 
 export default function App() {
-  console.log("test");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
