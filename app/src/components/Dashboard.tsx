@@ -36,6 +36,7 @@ interface DashboardProps {
   suggestions: Suggestion[];
   onNavigateToCategory: (categoryId: string) => void;
   onNavigateToAddTask: () => void;
+  onNavigateToTaskDetails: (taskId: string) => void;
   onToggleTask: (taskId: string) => void;
   onDismissSuggestion: (suggestionId: string) => void;
   onSuggestionFeedback: (
@@ -51,6 +52,7 @@ export function Dashboard({
   suggestions,
   onNavigateToCategory,
   onNavigateToAddTask,
+  onNavigateToTaskDetails,
   onToggleTask,
   onDismissSuggestion,
   onSuggestionFeedback,
@@ -61,8 +63,7 @@ export function Dashboard({
   const [showTaskDetail, setShowTaskDetail] = useState(false);
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-    setShowTaskDetail(true);
+    onNavigateToTaskDetails(task.id);
   };
 
   const upcomingTasks = tasks
@@ -340,7 +341,7 @@ export function Dashboard({
       </Dialog> */}
 
       {/* Task Detail Dialog */}
-      <TaskDetailDialog
+      {/* <TaskDetailDialog
         task={selectedTask}
         category={
           selectedTask ? getCategoryById(selectedTask.categoryId) : undefined
@@ -348,7 +349,7 @@ export function Dashboard({
         open={showTaskDetail}
         onOpenChange={setShowTaskDetail}
         onUpdateTask={onUpdateTask}
-      />
+      /> */}
     </div>
   );
 }

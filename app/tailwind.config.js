@@ -7,6 +7,7 @@ module.exports = {
         primary: "rgb(var(--color-primary) / <alpha-value>)",
         secondary: "rgb(var(--color-secondary) / <alpha-value>)",
         background: "var(--background)",
+        destructive: "var(--color-destructive)",
       },
     },
   },

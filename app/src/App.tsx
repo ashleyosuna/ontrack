@@ -723,6 +723,7 @@ export default function App() {
             suggestions={suggestions}
             onNavigateToCategory={navigateToCategory}
             onNavigateToAddTask={navigateToAddTask}
+            onNavigateToTaskDetails={navigateToEditTask}
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
             onSuggestionFeedback={handleSuggestionFeedback}
