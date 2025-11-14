@@ -56,6 +56,16 @@ export function TaskForm({
   defaultCategoryId,
   templateData,
 }: TaskFormProps) {
+  const [formTask, setFormTask] = useState<Task>({
+    title: task?.title || templateData?.title || "",
+    description: task?.description || templateData?.description || "",
+    date: task?.date || new Date(),
+    categoryId: task?.categoryId || defaultCategoryId || "",
+    notes: task?.notes || templateData?.notes || "",
+    attachments: task?.attachments || [],
+    reminders: task?.reminders || templateData?.reminders || [],
+  });
+
   const [title, setTitle] = useState(task?.title || templateData?.title || "");
   const [description, setDescription] = useState(
     task?.description || templateData?.description || ""
@@ -78,15 +88,33 @@ export function TaskForm({
 
   useEffect(() => {
     if (task) {
-      setTitle(task.title);
-      setDescription(task.description);
-      setDate(task.date);
-      setCategoryId(task.categoryId);
-      setNotes(task.notes);
-      setAttachments(task.attachments);
-      setReminders(task.reminders || []);
+      // setTitle(task.title);
+      // setDescription(task.description);
+      // setDate(task.date);
+      // setCategoryId(task.categoryId);
+      // setNotes(task.notes);
+      // setAttachments(task.attachments);
+      // setReminders(task.reminders || []);
+      setFormTask(task);
     }
   }, [task]);
+
+  useEffect(() => {
+    function equal() {
+      if (!task) return true;
+      for (const key of Object.keys(formTask)) {
+        if (
+          (typeof task[key] == "string" &&
+            task[key].trim() != formTask[key].trim()) ||
+          (typeof task[key] != "string" && task[key] != formTask[key])
+        )
+          return false;
+      }
+      return true;
+    }
+    if (!equal()) setEditMode(true);
+    else setEditMode(false);
+  }, [formTask]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,13 +130,13 @@ export function TaskForm({
 
     onSave(
       {
-        title: title.trim(),
-        description: description.trim(),
-        date,
-        categoryId,
-        notes: notes.trim(),
-        attachments,
-        reminders,
+        title: formTask.title.trim(),
+        description: formTask.description.trim(),
+        date: formTask.date,
+        categoryId: formTask.categoryId,
+        notes: formTask.notes.trim(),
+        attachments: formTask.attachments,
+        reminders: formTask.reminders,
         completed: task?.completed || false,
       },
       saveAsTemplate,
@@ -119,11 +147,17 @@ export function TaskForm({
   const handleFileUpload = () => {
     // Simulate file upload
     const mockFileName = `document_${Date.now()}.pdf`;
-    setAttachments([...attachments, mockFileName]);
+    setFormTask({
+      ...formTask,
+      attachments: [...formTask.attachments, mockFileName],
+    });
   };
 
   const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
+    const filteredAttachments = formTask.attachments.filter(
+      (_, i) => i !== index
+    );
+    setFormTask({ ...formTask, attachments: filteredAttachments });
   };
 
   const addReminder = (
@@ -164,15 +198,15 @@ export function TaskForm({
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h2 className="grow text-lg font-semibold text-secondary">
-          {task && editMode ? "Edit Task" : task ? "Task Details" : "New Task"}
+          {task ? "Task Details" : "New Task"}
         </h2>
-        <Button
+        {/* <Button
           className="justify-self-end"
           variant="outline"
           onClick={() => setEditMode((prev) => !prev)}
         >
           <Edit2 className="h-5 w-5" />
-        </Button>
+        </Button> */}
       </div>
 
       {/* Form */}
@@ -184,12 +218,13 @@ export function TaskForm({
             </Label>
             <Input
               id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={formTask?.title}
+              onChange={(e) =>
+                setFormTask({ ...formTask, title: e.target.value })
+              }
               placeholder="e.g., Renew passport"
               required
-              className="h-12 disabled:bg-white disabled:opacity-100"
-              disabled={task && !editMode}
+              className="h-12"
             />
           </div>
 
@@ -199,12 +234,12 @@ export function TaskForm({
             </Label>
             <Textarea
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formTask?.description}
+              onChange={(e) =>
+                setFormTask({ ...formTask, description: e.target.value })
+              }
               placeholder="Add details..."
               rows={3}
-              className="disabled:bg-white disabled:opacity-100 disabled:cursor-not-allowed/disabled"
-              disabled={task && !editMode}
             />
           </div>
 
@@ -214,11 +249,11 @@ export function TaskForm({
                 Category *
               </Label>
               <Select
-                value={categoryId}
-                onValueChange={setCategoryId}
+                value={formTask?.categoryId}
+                onValueChange={(e) => {
+                  setFormTask({ ...formTask, categoryId: e });
+                }}
                 required
-                disabled={task && !editMode}
-                className=""
               >
                 <SelectTrigger id="category" className="h-12">
                   <SelectValue placeholder="Select category" />
@@ -246,18 +281,19 @@ export function TaskForm({
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start h-12 disabled:opacity-100 disabled:bg-white"
-                    disabled={task && !editMode}
+                    className="w-full justify-start h-12"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(date, "PPP")}
+                    {format(formTask?.date, "PPP")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={date}
-                    onSelect={(newDate) => newDate && setDate(newDate)}
+                    selected={formTask?.date}
+                    onSelect={(newDate) =>
+                      newDate && setFormTask({ ...formTask, date: newDate })
+                    }
                   />
                 </PopoverContent>
               </Popover>
@@ -279,14 +315,14 @@ export function TaskForm({
               </Button>
             </div>
 
-            {reminders.length === 0 ? (
+            {formTask?.reminders.length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-[#4C4799] py-2">
                 <Bell className="h-4 w-4" />
                 <span>No Reminder Set</span>
               </div>
             ) : (
               <div className="space-y-2">
-                {reminders.map((reminder) => (
+                {formTask?.reminders.map((reminder) => (
                   <div
                     key={reminder.id}
                     className="flex items-start gap-2 text-sm text-[#312E81]"
@@ -313,54 +349,48 @@ export function TaskForm({
             </Label>
             <Textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={formTask?.notes}
+              onChange={(e) =>
+                setFormTask({ ...formTask, notes: e.target.value })
+              }
               placeholder="Additional notes..."
               rows={3}
-              disabled={task && !editMode}
-              className="disabled:opacity-100 disabled:bg-white disabled:cursor-not-allowed/disabled"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[#312E81]">
-              {attachments.length ? "" : "No "}Attachments
-            </Label>
+            <Label className="text-[#312E81]">Attachments</Label>
             <div className="space-y-2">
-              {attachments.map((attachment, index) => (
+              {formTask?.attachments.map((attachment, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-2 p-3 bg-muted rounded-lg"
                 >
                   <span className="text-sm flex-1 truncate">{attachment}</span>
-                  {task && editMode && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeAttachment(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {task && editMode && (
-                <>
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={handleFileUpload}
-                    className="w-full h-12"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeAttachment(index)}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
+                    <X className="h-4 w-4" />
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Scan or upload documents
-                  </p>
-                </>
-              )}
+                </div>
+              ))}
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleFileUpload}
+                  className="w-full h-12"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Scan or upload documents
+                </p>
+              </>
             </div>
           </div>
 
@@ -404,26 +434,26 @@ export function TaskForm({
           )}
 
           <div className="flex flex-col gap-3 pt-4">
-            {(!task || editMode) && (
-              <Button
-                type="submit"
-                disabled={!title.trim() || !categoryId}
-                className="h-12 bg-[#2C7A7B] text-white hover:bg-[#236767]"
-              >
-                {task ? "Save Changes" : "Create Task"}
-              </Button>
-            )}
+            <Button
+              type="submit"
+              disabled={!title.trim() || !categoryId || (task && !editMode)}
+              className="h-12 bg-[#2C7A7B] text-white hover:bg-[#236767]"
+            >
+              {task ? "Save Changes" : "Create Task"}
+            </Button>
 
-            {(!task || editMode) && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                className="h-12"
-              >
-                Cancel
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (editMode) setFormTask(task);
+                else onCancel();
+              }}
+              disabled={task && !editMode}
+              className="h-12"
+            >
+              Cancel
+            </Button>
 
             {task && onDelete && (
               <Button
