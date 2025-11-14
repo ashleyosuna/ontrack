@@ -100,6 +100,7 @@ export function TaskForm({
   }, [task]);
 
   useEffect(() => {
+    // go into edit mode if user has made changes to the task
     function equal() {
       if (!task) return true;
       for (const key of Object.keys(formTask)) {
@@ -119,7 +120,7 @@ export function TaskForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !categoryId) {
+    if (!formTask.title.trim() || !formTask.categoryId) {
       return;
     }
 
@@ -436,7 +437,11 @@ export function TaskForm({
           <div className="flex flex-col gap-3 pt-4">
             <Button
               type="submit"
-              disabled={!title.trim() || !categoryId || (task && !editMode)}
+              disabled={
+                !formTask?.title.trim() ||
+                !formTask?.categoryId ||
+                (task && !editMode)
+              }
               className="h-12 bg-[#2C7A7B] text-white hover:bg-[#236767]"
             >
               {task ? "Save Changes" : "Create Task"}
