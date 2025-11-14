@@ -205,13 +205,18 @@ export function TaskForm({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 relative">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button onClick={onCancel} variant="outline" size="icon">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h2 className="grow text-lg font-semibold text-secondary">
+      <Button
+        onClick={onCancel}
+        variant="outline"
+        size="icon"
+        className="absolute left-0 top-0"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
+      <div className="flex justify-center">
+        <h2 className="text-xl font-semibold text-secondary">
           {task ? "Task Details" : "New Task"}
         </h2>
       </div>

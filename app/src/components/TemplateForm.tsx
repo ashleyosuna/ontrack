@@ -1,20 +1,26 @@
-import { useState, useEffect } from 'react';
-import { Category, Reminder, Template } from '../types';
-import { CategoryIcon } from './CategoryIcon';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { ArrowLeft, Bell, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { AddReminderDialog } from './AddReminderDialog';
+import { useState, useEffect } from "react";
+import { Category, Reminder, Template } from "../types";
+import { CategoryIcon } from "./CategoryIcon";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { ArrowLeft, Bell, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { AddReminderDialog } from "./AddReminderDialog";
 
 interface TemplateFormProps {
   template?: Template;
   categories: Category[];
-  onSave: (template: Omit<Template, 'id' | 'createdAt'>) => void;
+  onSave: (template: Omit<Template, "id" | "createdAt">) => void;
   onCancel: () => void;
   onDelete?: (templateId: string) => void;
   defaultCategoryId?: string;
@@ -28,12 +34,16 @@ export function TemplateForm({
   onDelete,
   defaultCategoryId,
 }: TemplateFormProps) {
-  const [name, setName] = useState(template?.name || '');
-  const [title, setTitle] = useState(template?.title || '');
-  const [description, setDescription] = useState(template?.description || '');
-  const [categoryId, setCategoryId] = useState(template?.categoryId || defaultCategoryId || '');
-  const [notes, setNotes] = useState(template?.notes || '');
-  const [reminders, setReminders] = useState<Reminder[]>(template?.reminders || []);
+  const [name, setName] = useState(template?.name || "");
+  const [title, setTitle] = useState(template?.title || "");
+  const [description, setDescription] = useState(template?.description || "");
+  const [categoryId, setCategoryId] = useState(
+    template?.categoryId || defaultCategoryId || ""
+  );
+  const [notes, setNotes] = useState(template?.notes || "");
+  const [reminders, setReminders] = useState<Reminder[]>(
+    template?.reminders || []
+  );
   const [showAddReminderDialog, setShowAddReminderDialog] = useState(false);
 
   useEffect(() => {
@@ -49,7 +59,7 @@ export function TemplateForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim() || !title.trim() || !categoryId) {
       return;
     }
@@ -65,7 +75,10 @@ export function TemplateForm({
     });
   };
 
-  const addReminder = (time: Date, frequency: 'once' | 'daily' | 'weekly' | 'monthly' | 'custom') => {
+  const addReminder = (
+    time: Date,
+    frequency: "once" | "daily" | "weekly" | "monthly" | "custom"
+  ) => {
     const newReminder: Reminder = {
       id: `reminder-${Date.now()}`,
       time,
@@ -76,41 +89,50 @@ export function TemplateForm({
   };
 
   const removeReminder = (reminderId: string) => {
-    setReminders(reminders.filter(r => r.id !== reminderId));
+    setReminders(reminders.filter((r) => r.id !== reminderId));
   };
 
   const getFrequencyLabel = (frequency: string) => {
     switch (frequency) {
-      case 'once':
-        return 'Once';
-      case 'daily':
-        return 'Daily';
-      case 'weekly':
-        return 'Weekly';
-      case 'monthly':
-        return 'Monthly';
-      case 'custom':
-        return 'Custom';
+      case "once":
+        return "Once";
+      case "daily":
+        return "Daily";
+      case "weekly":
+        return "Weekly";
+      case "monthly":
+        return "Monthly";
+      case "custom":
+        return "Custom";
       default:
-        return 'Once';
+        return "Once";
     }
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 relative">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button onClick={onCancel} variant="outline" size="icon">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h2 className="text-[#312E81]">{template ? 'Edit Template' : 'Create Template'}</h2>
+      <Button
+        onClick={onCancel}
+        variant="outline"
+        size="icon"
+        className="absolute top-0 left-0"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
+      <div className="flex justify-center">
+        <h2 className="text-[#312E81] text-xl font-semibold">
+          {template ? "Edit Template" : "Create Template"}
+        </h2>
       </div>
 
       {/* Form */}
       <Card className="bg-gradient-to-r from-purple-50 to-blue-50 p-5 border-purple-200">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-[#312E81]">Template Name *</Label>
+            <Label htmlFor="name" className="text-[#312E81]">
+              Template Name *
+            </Label>
             <Input
               id="name"
               value={name}
@@ -125,7 +147,9 @@ export function TemplateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-[#312E81]">Task Title *</Label>
+            <Label htmlFor="title" className="text-[#312E81]">
+              Task Title *
+            </Label>
             <Input
               id="title"
               value={title}
@@ -140,7 +164,9 @@ export function TemplateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-[#312E81]">Description</Label>
+            <Label htmlFor="description" className="text-[#312E81]">
+              Description
+            </Label>
             <Textarea
               id="description"
               value={description}
@@ -151,7 +177,9 @@ export function TemplateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-[#312E81]">Category *</Label>
+            <Label htmlFor="category" className="text-[#312E81]">
+              Category *
+            </Label>
             <Select value={categoryId} onValueChange={setCategoryId} required>
               <SelectTrigger id="category" className="h-12">
                 <SelectValue placeholder="Select category" />
@@ -160,7 +188,11 @@ export function TemplateForm({
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     <span className="flex items-center gap-2">
-                      <CategoryIcon iconName={category.icon} size={16} color={category.color} />
+                      <CategoryIcon
+                        iconName={category.icon}
+                        size={16}
+                        color={category.color}
+                      />
                       <span>{category.name}</span>
                     </span>
                   </SelectItem>
@@ -172,7 +204,9 @@ export function TemplateForm({
           {/* Reminders Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm text-[#312E81]">Default Reminders</Label>
+              <Label className="text-sm text-[#312E81]">
+                Default Reminders
+              </Label>
               <Button
                 type="button"
                 size="sm"
@@ -199,8 +233,10 @@ export function TemplateForm({
                     <Bell className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <span className="block">
-                        {format(reminder.time, 'p')}
-                        <span className="text-[#4C4799] ml-2">- {getFrequencyLabel(reminder.frequency)}</span>
+                        {format(reminder.time, "p")}
+                        <span className="text-[#4C4799] ml-2">
+                          - {getFrequencyLabel(reminder.frequency)}
+                        </span>
                       </span>
                     </div>
                     <Button
@@ -217,12 +253,15 @@ export function TemplateForm({
               </div>
             )}
             <p className="text-xs text-[#4C4799]">
-              These reminders will be applied to tasks created from this template
+              These reminders will be applied to tasks created from this
+              template
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-[#312E81]">Notes</Label>
+            <Label htmlFor="notes" className="text-[#312E81]">
+              Notes
+            </Label>
             <Textarea
               id="notes"
               value={notes}
@@ -233,20 +272,22 @@ export function TemplateForm({
           </div>
 
           <div className="flex flex-col gap-3 pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={!name.trim() || !title.trim() || !categoryId}
               className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
             >
-              {template ? 'Save Changes' : 'Create Template'}
+              {template ? "Save Changes" : "Create Template"}
             </Button>
-            
+
             {template && onDelete && (
               <Button
                 type="button"
                 variant="destructive"
                 onClick={() => {
-                  if (confirm('Are you sure you want to delete this template?')) {
+                  if (
+                    confirm("Are you sure you want to delete this template?")
+                  ) {
                     onDelete(template.id);
                   }
                 }}
@@ -255,8 +296,13 @@ export function TemplateForm({
                 Delete Template
               </Button>
             )}
-            
-            <Button type="button" variant="outline" onClick={onCancel} className="h-12">
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="h-12"
+            >
               Cancel
             </Button>
           </div>

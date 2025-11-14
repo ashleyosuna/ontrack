@@ -45,7 +45,8 @@ type View =
   | "reminders"
   | "create-template"
   | "edit-template"
-  | "pre-add-task";
+  | "pre-add-task"
+  | "select-template";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -548,15 +549,16 @@ export default function App() {
   const handleModeSelected = (
     mode: "quick" | "template" | "create-template"
   ) => {
+    setPreviousView(currentView);
     if (mode === "quick") {
       // Go directly to TaskForm (start from scratch)
       setCurrentView("add-task");
     } else if (mode === "template") {
       // Open template selection dialog
-      setShowTemplateDialog(true);
+      // setShowTemplateDialog(true);
+      setCurrentView("select-template");
     } else {
       // Create new template
-      setPreviousView(currentView);
       setCurrentView("create-template");
     }
   };
@@ -692,13 +694,14 @@ export default function App() {
   }
 
   // Check if we're on a main view (for bottom nav)
-  const isMainView = [
-    "dashboard",
-    "categories",
-    "category",
-    "settings",
-    "reminders",
-  ].includes(currentView);
+  // const isMainView = [
+  //   "dashboard",
+  //   "categories",
+  //   "category",
+  //   "settings",
+  //   "reminders",
+  // ].includes(currentView);
+  const isMainView = true;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
@@ -905,6 +908,19 @@ export default function App() {
             onDelete={handleDeleteTemplate}
           />
         )}
+
+        {/* Template Selection Dialog */}
+        {currentView === "select-template" && (
+          <TemplateSelectionDialog
+            open={showTemplateDialog}
+            onOpenChange={setShowTemplateDialog}
+            categories={categories}
+            customTemplates={templates}
+            onSelectTemplate={handleTemplateSelected}
+            onDeleteTemplate={handleDeleteTemplate}
+            onCancel={navigateToPreviousView}
+          />
+        )}
       </main>
 
       {/* Bottom Navigation */}
@@ -975,15 +991,17 @@ export default function App() {
         />
       )}
 
-      {/* Template Selection Dialog */}
-      <TemplateSelectionDialog
-        open={showTemplateDialog}
-        onOpenChange={setShowTemplateDialog}
-        categories={categories}
-        customTemplates={templates}
-        onSelectTemplate={handleTemplateSelected}
-        onDeleteTemplate={handleDeleteTemplate}
-      />
+      {/* Template Selection Dialog
+      {currentView === "select-template" && (
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          categories={categories}
+          customTemplates={templates}
+          onSelectTemplate={handleTemplateSelected}
+          onDeleteTemplate={handleDeleteTemplate}
+        />
+      )} */}
     </div>
   );
 }
