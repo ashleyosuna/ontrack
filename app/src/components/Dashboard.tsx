@@ -238,7 +238,7 @@ export function Dashboard({
                 setShowCalendar(false);
               }}
               className={`transition-colors p-2 rounded-xl ${
-                !showCalendar ? "bg-primary/50 text-white" : ""
+                !showCalendar ? "bg-primary text-white" : ""
               }`}
             >
               <List className="h-6 w-6" />
@@ -248,7 +248,7 @@ export function Dashboard({
                 setShowCalendar(true);
               }}
               className={`transition-colors p-2 rounded-xl ${
-                showCalendar ? "bg-primary/50 text-white" : ""
+                showCalendar ? "bg-primary text-white" : ""
               }`}
             >
               <Calendar className="h-6 w-6" />

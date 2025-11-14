@@ -44,7 +44,8 @@ type View =
   | "settings"
   | "reminders"
   | "create-template"
-  | "edit-template";
+  | "edit-template"
+  | "pre-add-task";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -540,7 +541,8 @@ export default function App() {
     setSelectedCategoryId(categoryId || null);
     setSelectedTaskId(null);
     setSelectedTemplate(null);
-    setShowModeDialog(true);
+    // setShowModeDialog(true);
+    setCurrentView("pre-add-task");
   };
 
   const handleModeSelected = (
@@ -834,7 +836,7 @@ export default function App() {
               setSelectedTemplate(null);
               selectedCategoryId
                 ? setCurrentView("category")
-                : navigateToDashboard();
+                : navigateToPreviousView();
             }}
             defaultCategoryId={selectedCategoryId || undefined}
             templateData={
@@ -964,11 +966,14 @@ export default function App() {
       )}
 
       {/* Task Creation Mode Dialog */}
-      <TaskCreationModeDialog
-        open={showModeDialog}
-        onOpenChange={setShowModeDialog}
-        onSelectMode={handleModeSelected}
-      />
+      {currentView === "pre-add-task" && (
+        <TaskCreationModeDialog
+          open={showModeDialog}
+          onOpenChange={setShowModeDialog}
+          onSelectMode={handleModeSelected}
+          onCancel={navigateToDashboard}
+        />
+      )}
 
       {/* Template Selection Dialog */}
       <TemplateSelectionDialog
