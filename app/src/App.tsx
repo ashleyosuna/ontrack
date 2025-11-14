@@ -921,6 +921,15 @@ export default function App() {
             onCancel={navigateToPreviousView}
           />
         )}
+
+        {currentView === "pre-add-task" && (
+          <TaskCreationModeDialog
+            open={showModeDialog}
+            onOpenChange={setShowModeDialog}
+            onSelectMode={handleModeSelected}
+            onCancel={navigateToDashboard}
+          />
+        )}
       </main>
 
       {/* Bottom Navigation */}
@@ -982,14 +991,14 @@ export default function App() {
       )}
 
       {/* Task Creation Mode Dialog */}
-      {currentView === "pre-add-task" && (
+      {/* {currentView === "pre-add-task" && (
         <TaskCreationModeDialog
           open={showModeDialog}
           onOpenChange={setShowModeDialog}
           onSelectMode={handleModeSelected}
           onCancel={navigateToDashboard}
         />
-      )}
+      )} */}
 
       {/* Template Selection Dialog
       {currentView === "select-template" && (

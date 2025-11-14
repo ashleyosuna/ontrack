@@ -96,7 +96,7 @@ export function TemplateSelectionDialog({
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
-      <div className="flex flex-col items-center mb-4">
+      <div className="flex flex-col items-center mb-4 gap-3">
         <h1 className="text-xl text-secondary font-semibold">
           Choose a Template
         </h1>
