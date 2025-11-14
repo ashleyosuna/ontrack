@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { Category, Template } from "../types";
 import { CategoryIcon } from "./CategoryIcon";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
@@ -76,17 +69,6 @@ export function TemplateSelectionDialog({
   });
 
   return (
-    // <Dialog open={open} onOpenChange={onOpenChange}>
-    //   <DialogContent className="max-w-2xl max-h-[90vh] p-0 flex flex-col">
-    //     <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
-    //       <DialogTitle className="flex items-center gap-2 text-[#312E81]">
-    //         <Sparkles className="h-6 w-6 text-[#2C7A7B]" />
-    //         Choose a Template
-    //       </DialogTitle>
-    //       <DialogDescription>
-    //         Select a pre-built template to get started quickly
-    //       </DialogDescription>
-    //     </DialogHeader>
     <div className="relative">
       <Button
         variant="outline"
@@ -323,7 +305,5 @@ export function TemplateSelectionDialog({
         </Button>
       </div>
     </div>
-    //   </DialogContent>
-    // </Dialog>
   );
 }
