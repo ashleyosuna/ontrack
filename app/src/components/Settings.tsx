@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import { format } from 'path';
 
 interface SettingsProps {
   categories: Category[];
@@ -157,6 +158,101 @@ export function Settings({
   };
 
   const customTemplates = templates.filter(t => !t.isPreset);
+  // CSV conversion helper -> transforms every value into a csv compatible string
+  const csvEscape = (value: any) => {
+    if (value == null) return "";
+    const s = String(value);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+
+  // transforms the value into a compatible Date format 
+  const toDate = (value: any): Date | null => {
+    if(!value) return null;
+    if(value instanceof Date) return value;
+    const dateInst = new Date(value);
+    return isNaN(dateInst.getTime()) ? null : dateInst;
+  };
+
+  const formatDateForCSV = (date: Date | null) => {
+    if(!date) return "";
+
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    
+    return `${mm}/${dd}/${yyyy}`;
+    
+  }
+
+  const formatTimeForCSV = (date: Date | null) => {
+    if(!date) return "";
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutes} ${ampm}`;
+  }
+  const isAllDayEvent = (date: Date |null) => {
+    if(!date) return false;
+    return date.getHours() === 0 && date.getMinutes() === 0;
+  }
+
+  const exportTasksToGoogleCalendarCSV = (taskList: any[]) => {
+    if(!taskList || taskList.length === 0){
+      alert("No tasks to export to CSV");
+      return;
+    }
+    const headers = [
+      "Subject", 
+      "Start Date", 
+      "Start Time", 
+      "End Date", 
+      "End Time", 
+      "All Day Event", 
+      "Description", 
+      "Location", 
+      "Private",
+    ];
+    const rows = taskList.map((task) => {
+      const title = task.title ?? task.name ?? "Task";
+      const description = (task.description ?? task.notes ?? "").toString().replace(/\r?\n/g, " ");
+      const start = toDate(task.startDate ?? task.start ?? task.date ?? task.due ?? task.dueDate ?? task.createdAt);
+      const end = toDate(task.endDate ?? task.end ?? null) ?? start;
+      const allDay = isAllDayEvent(start);
+      const startDate = formatDateForCSV(start);
+      const endDate = formatDateForCSV(end);
+      const startTime = allDay ? "" : formatTimeForCSV(start);
+      const endTime = allDay ? "" : formatTimeForCSV(end);
+      const location = task.location ?? "";
+
+      return [
+        csvEscape(title),
+        startDate, 
+        startTime, 
+        endDate, 
+        endTime, 
+        allDay ? "True" : "False", 
+        csvEscape(description),
+        csvEscape(location),
+        task.private ? "True" : "False",
+      ].join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ontrack-tasks-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-5">
@@ -408,9 +504,10 @@ export function Settings({
         </div>
         
         <Separator />
-        
+      
         <div className="space-y-2">
-          <Button variant="outline" className="w-full h-12">
+          //exports data in csv format for google calendar
+          <Button variant="outline" className="w-full h-12" onClick={() => exportTasksToGoogleCalendarCSV(tasks)}>
             Export Data
           </Button>
           <Button variant="outline" className="w-full h-12">
