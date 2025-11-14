@@ -23,10 +23,11 @@ import {
   X,
   Bell,
   Plus,
-  Edit2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { format } from "date-fns";
-import { AddReminderDialog } from "./AddReminderDialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TaskFormProps {
   task?: Task;
@@ -81,20 +82,19 @@ export function TaskForm({
   const [reminders, setReminders] = useState<Reminder[]>(
     task?.reminders || templateData?.reminders || []
   );
-  const [showAddReminderDialog, setShowAddReminderDialog] = useState(false);
+  const [showAddReminder, setShowAddReminder] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(date);
+  const [hours, setHours] = useState(9);
+  const [minutes, setMinutes] = useState(0);
+  const [frequency, setFrequency] = useState<
+    "once" | "daily" | "weekly" | "monthly" | "custom"
+  >("once");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (task) {
-      // setTitle(task.title);
-      // setDescription(task.description);
-      // setDate(task.date);
-      // setCategoryId(task.categoryId);
-      // setNotes(task.notes);
-      // setAttachments(task.attachments);
-      // setReminders(task.reminders || []);
       setFormTask(task);
     }
   }, [task]);
@@ -171,7 +171,20 @@ export function TaskForm({
       frequency,
       enabled: true,
     };
-    setReminders([...reminders, newReminder]);
+    setFormTask({ ...formTask, reminders: [...reminders, newReminder] });
+  };
+
+  const handleAddReminder = () => {
+    const reminderTime = new Date(selectedDate);
+    reminderTime.setHours(hours);
+    reminderTime.setMinutes(minutes);
+    addReminder(reminderTime, frequency);
+    setShowAddReminder(false);
+    // Reset form
+    setSelectedDate(date);
+    setHours(9);
+    setMinutes(0);
+    setFrequency("once");
   };
 
   const getFrequencyLabel = (frequency: string) => {
@@ -201,13 +214,6 @@ export function TaskForm({
         <h2 className="grow text-lg font-semibold text-secondary">
           {task ? "Task Details" : "New Task"}
         </h2>
-        {/* <Button
-          className="justify-self-end"
-          variant="outline"
-          onClick={() => setEditMode((prev) => !prev)}
-        >
-          <Edit2 className="h-5 w-5" />
-        </Button> */}
       </div>
 
       {/* Form */}
@@ -288,7 +294,7 @@ export function TaskForm({
                     {format(formTask?.date, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={formTask?.date}
@@ -305,15 +311,6 @@ export function TaskForm({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm text-[#312E81]">Reminders</Label>
-              <Button
-                type="button"
-                size="sm"
-                className="bg-[#2C7A7B] text-white hover:bg-[#236767]"
-                onClick={() => setShowAddReminderDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
             </div>
 
             {formTask?.reminders.length === 0 ? (
@@ -342,6 +339,180 @@ export function TaskForm({
                 ))}
               </div>
             )}
+            {/* Add Reminder Section - Inline Collapsible */}
+            <div className="border-t border-gray-200 pt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full flex items-center justify-between text-[#2C7A7B] hover:text-[#236767] hover:bg-[#2C7A7B]/5 px-3 py-2"
+                onClick={() => setShowAddReminder(!showAddReminder)}
+              >
+                <span className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Reminder
+                </span>
+                {showAddReminder ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+
+              <AnimatePresence>
+                {showAddReminder && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 p-4 bg-white/50 rounded-lg border border-gray-200 space-y-4">
+                      {/* Date Selection */}
+                      <motion.div
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.1, duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label className="text-sm text-[#312E81]">
+                          Reminder Date
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start h-10 text-sm"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {format(selectedDate, "PPP")}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(newDate) =>
+                                newDate && setSelectedDate(newDate)
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </motion.div>
+
+                      {/* Time Selection */}
+                      <motion.div
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.15, duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label className="text-sm text-[#312E81]">Time</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="23"
+                              value={hours}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                if (!isNaN(val) && val >= 0 && val <= 23) {
+                                  setHours(val);
+                                }
+                              }}
+                              className="h-10 text-center"
+                              placeholder="HH"
+                            />
+                          </div>
+                          <div>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={minutes}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                if (!isNaN(val) && val >= 0 && val <= 59) {
+                                  setMinutes(val);
+                                }
+                              }}
+                              className="h-10 text-center"
+                              placeholder="MM"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-[#4C4799] text-center">
+                          24-hour format
+                        </p>
+                      </motion.div>
+
+                      {/* Frequency Selection */}
+                      <motion.div
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.2, duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label className="text-sm text-[#312E81]">
+                          Frequency
+                        </Label>
+                        <Select
+                          value={frequency}
+                          onValueChange={(
+                            value:
+                              | "once"
+                              | "daily"
+                              | "weekly"
+                              | "monthly"
+                              | "custom"
+                          ) => setFrequency(value)}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="once">Once</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="custom">
+                              Custom (Multiple per day)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </motion.div>
+
+                      {/* Add Button */}
+                      <motion.div
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.25, duration: 0.2 }}
+                        className="flex justify-end gap-2 pt-2"
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAddReminder(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="bg-[#2C7A7B] text-white hover:bg-[#236767]"
+                          onClick={handleAddReminder}
+                        >
+                          Add Reminder
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -478,12 +649,12 @@ export function TaskForm({
         </form>
       </Card>
 
-      <AddReminderDialog
+      {/* <AddReminderDialog
         open={showAddReminderDialog}
         onOpenChange={setShowAddReminderDialog}
         onAdd={addReminder}
         defaultDate={date}
-      />
+      /> */}
     </div>
   );
 }

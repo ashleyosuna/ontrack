@@ -3,11 +3,179 @@
 @tailwind utilities;
 
 :root {
-  /* --color-primary: #2c7a7b; */
   --color-primary: 44 122 123;
-  /* --color-primary: #2c7a7b; */
-  /* --color-secondary: #312e81; */
   --color-secondary: 49 46 129;
   --background: #fff;
   --color-destructive: red;
+  --color-popover: white;
+  --primary-foreground: white;
+}
+
+/* Animations for select dropdowns and other components */
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes zoom-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes zoom-out {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  @keyframes slide-in-from-top {
+    from {
+      transform: translateY(-0.5rem);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-from-bottom {
+    from {
+      transform: translateY(0.5rem);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-from-left {
+    from {
+      transform: translateX(-0.5rem);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-from-right {
+    from {
+      transform: translateX(0.5rem);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes dialog-zoom-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes dialog-zoom-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+  }
+
+  .animate-in {
+    animation-duration: 300ms;
+    animation-fill-mode: both;
+  }
+
+  .animate-out {
+    animation-duration: 150ms;
+    animation-fill-mode: both;
+  }
+
+  .fade-in-0 {
+    animation-name: fade-in;
+  }
+
+  .fade-out-0 {
+    animation-name: fade-out;
+  }
+
+  .zoom-in-95 {
+    animation-name: zoom-in;
+  }
+
+  .zoom-out-95 {
+    animation-name: zoom-out;
+  }
+
+  .slide-in-from-top-2 {
+    animation-name: slide-in-from-top;
+  }
+
+  .slide-in-from-bottom-2 {
+    animation-name: slide-in-from-bottom;
+  }
+
+  .slide-in-from-left-2 {
+    animation-name: slide-in-from-left;
+  }
+
+  .slide-in-from-right-2 {
+    animation-name: slide-in-from-right;
+  }
+
+  /* Data attribute variants */
+  [data-slot="select-content"][data-state="open"].animate-in {
+    animation-name: fade-in, zoom-in;
+  }
+
+  [data-slot="select-content"][data-state="closed"].animate-out {
+    animation-name: fade-out, zoom-out;
+  }
+
+  [data-slot="dialog-content"][data-state="open"] {
+    animation-name: dialog-zoom-in !important;
+  }
+
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation-name: dialog-zoom-out !important;
+  }
+
+  /* Overlay uses only fade, no transform */
+  [data-slot="dialog-overlay"][data-state="open"] {
+    animation-name: fade-in;
+  }
+
+  [data-slot="dialog-overlay"][data-state="closed"] {
+    animation-name: fade-out;
+  }
 }

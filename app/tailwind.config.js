@@ -8,6 +8,8 @@ module.exports = {
         secondary: "rgb(var(--color-secondary) / <alpha-value>)",
         background: "var(--background)",
         destructive: "var(--color-destructive)",
+        popover: "var(--color-popover)",
+        "primary-foreground": "var(--primary-foreground)",
       },
     },
   },
