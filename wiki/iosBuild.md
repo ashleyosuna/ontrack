@@ -2,6 +2,7 @@
 
 - Have a build directory (can be done via npm run build)
 - Install XCode
+- Install CocoaPods
 
 # Steps
 
