@@ -228,19 +228,19 @@ export function Settings({
         </div>
       </div>
 
-      {/* Manage Categories */}
+       {/* Manage Categories */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
         <div>
           <h3 className="text-[#312E81]">Manage Categories</h3>
           <p className="text-xs text-[#4C4799] mt-1">
-            Add or remove categories as needed
+            Choose which categories you use and add your own
           </p>
         </div>
         
-        {/* Visible Categories */}
+        {/* My Categories */}
         {visibleCategories.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm text-[#312E81]">Visible Categories</h4>
+            <h4 className="text-sm text-[#312E81]">My Categories</h4>
             <p className="text-xs text-[#4C4799]">
               These categories appear on your dashboard
             </p>
@@ -259,9 +259,10 @@ export function Settings({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => category.isCustom 
-                    ? handleDeleteCustomCategory(category.id, category.name)
-                    : handleHideCategory(category.name)
+                  onClick={() =>
+                    category.isCustom
+                      ? handleDeleteCustomCategory(category.id, category.name)
+                      : handleHideCategory(category.name)
                   }
                   className="text-[#4C4799] hover:text-destructive"
                 >
@@ -274,12 +275,12 @@ export function Settings({
 
         {visibleCategories.length > 0 && hiddenCategories.length > 0 && <Separator />}
 
-        {/* Hidden Categories */}
+        {/* Add Categories */}
         {hiddenCategories.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm text-[#312E81]">Hidden Categories</h4>
+            <h4 className="text-sm text-[#312E81]">Add Categories</h4>
             <p className="text-xs text-[#4C4799]">
-              Click + to show these on your dashboard
+              Tap + to add these to My Categories
             </p>
             {hiddenCategories.map((category) => (
               <div
@@ -333,12 +334,18 @@ export function Settings({
                 }
               }}
             />
-            <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()} size="icon" className="h-12 w-12 flex-shrink-0">
+            <Button
+              onClick={handleAddCategory}
+              disabled={!newCategoryName.trim()}
+              size="icon"
+              className="h-12 w-12 flex-shrink-0"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
+
 
       {/* Manage Templates */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
@@ -431,17 +438,25 @@ export function Settings({
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={!!categoryToDelete}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+      >
+        <AlertDialogContent className="max-w-sm w-[90vw] sm:max-w-md mx-auto text-center left-1/2 -translate-x-1/2 fixed">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this category? You currently have unfinished tasks in "{categoryToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]">
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2">
+            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -449,17 +464,25 @@ export function Settings({
       </AlertDialog>
 
       {/* Demo Mode Confirmation Dialog */}
-      <AlertDialog open={showDemoModeDialog} onOpenChange={setShowDemoModeDialog}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={showDemoModeDialog}
+        onOpenChange={setShowDemoModeDialog}
+      >
+        <AlertDialogContent className="max-w-sm w-[90vw] sm:max-w-md mx-auto text-center left-1/2 -translate-x-1/2 fixed">
           <AlertDialogHeader>
             <AlertDialogTitle>Switch to Demo Mode?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to switch to demo mode? All of your saved tasks will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDemoMode} className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]">
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2">
+            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDemoMode}
+              className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>
