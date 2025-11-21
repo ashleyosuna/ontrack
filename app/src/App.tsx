@@ -34,6 +34,7 @@ import {
   generateCategoryBasedSuggestions,
 } from "./utils/assistant";
 import { generateDemoTasks } from "./utils/demoData";
+import { SafeArea } from "capacitor-plugin-safe-area";
 
 type View =
   | "dashboard"
@@ -70,6 +71,19 @@ export default function App() {
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [previousView, setPreviousView] = useState<View>("dashboard");
+
+  useEffect(() => {
+    (async function () {
+      const safeAreaData = await SafeArea.getSafeAreaInsets();
+      const { insets } = safeAreaData;
+      for (const [key, value] of Object.entries(insets)) {
+        document.documentElement.style.setProperty(
+          `--safe-area-inset-${key}`,
+          `${value}px`
+        );
+      }
+    })();
+  }, []);
 
   // Initialize app
   useEffect(() => {
@@ -704,12 +718,15 @@ export default function App() {
   const isMainView = true;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <Toaster position="top-center" />
 
       {/* Mobile Header */}
-      <header className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm">
-        <div className="px-4 py-4">
+      <header
+        className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm"
+        style={{ paddingTop: "var(--safe-area-inset-top)" }}
+      >
+        <div className="px-4 pb-4">
           <div className="flex items-center justify-center">
             <h2 className="text-[#F8FAFC] text-3xl relative">
               <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
@@ -934,45 +951,48 @@ export default function App() {
 
       {/* Bottom Navigation */}
       {isMainView && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
+        <nav
+          className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
+          style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
+        >
           <div className="grid grid-cols-4 max-w-2xl mx-auto">
             <button
               onClick={navigateToDashboard}
-              className={`flex flex-col items-center justify-center py-3 transition-colors ${
+              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
                 currentView === "dashboard" ? "text-primary" : "text-gray-400"
               }`}
             >
-              <Home className="h-6 w-6 mb-1" />
+              <Home className="h-6 w-6" />
               <span className="text-xs">Home</span>
             </button>
 
             <button
               onClick={navigateToCategories}
-              className={`flex flex-col items-center justify-center py-3 transition-colors ${
+              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
                 currentView === "categories" ? "text-primary" : "text-gray-400"
               }`}
             >
-              <List className="h-6 w-6 mb-1" />
+              <List className="h-6 w-6" />
               <span className="text-xs">Categories</span>
             </button>
 
             <button
               onClick={navigateToReminders}
-              className={`flex flex-col items-center justify-center py-3 transition-colors ${
+              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
                 currentView === "reminders" ? "text-primary" : "text-gray-400"
               }`}
             >
-              <Bell className="h-6 w-6 mb-1" />
+              <Bell className="h-6 w-6" />
               <span className="text-xs">Reminders</span>
             </button>
 
             <button
               onClick={navigateToSettings}
-              className={`flex flex-col items-center justify-center py-3 transition-colors ${
+              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
                 currentView === "settings" ? "text-primary" : "text-gray-400"
               }`}
             >
-              <SettingsIcon className="h-6 w-6 mb-1" />
+              <SettingsIcon className="h-6 w-6" />
               <span className="text-xs">Settings</span>
             </button>
           </div>
