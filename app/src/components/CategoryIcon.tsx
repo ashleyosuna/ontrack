@@ -1,12 +1,12 @@
-import { 
-  Home, 
-  Heart, 
-  DollarSign, 
-  Smartphone, 
-  Shield, 
-  Plane, 
-  Car, 
-  FileText, 
+import {
+  Home,
+  Heart,
+  DollarSign,
+  Smartphone,
+  Shield,
+  Plane,
+  Car,
+  FileText,
   Star,
   CheckCircle,
   Circle,
@@ -23,92 +23,101 @@ import {
   Users,
   Wrench,
   Package,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface CategoryIconProps {
   iconName: string;
   size?: number;
   className?: string;
   color?: string;
+  textColor?: string;
 }
 
 // Function to get the correct icon component
 function getIconComponent(iconName: string) {
   switch (iconName) {
-    case 'Home':
+    case "Home":
       return Home;
-    case 'Heart':
+    case "Heart":
       return Heart;
-    case 'DollarSign':
+    case "DollarSign":
       return DollarSign;
-    case 'Smartphone':
+    case "Smartphone":
       return Smartphone;
-    case 'Shield':
+    case "Shield":
       return Shield;
-    case 'Plane':
+    case "Plane":
       return Plane;
-    case 'Car':
+    case "Car":
       return Car;
-    case 'FileText':
+    case "FileText":
       return FileText;
-    case 'Star':
+    case "Star":
       return Star;
-    case 'CheckCircle':
+    case "CheckCircle":
       return CheckCircle;
-    case 'Circle':
+    case "Circle":
       return Circle;
-    case 'Calendar':
+    case "Calendar":
       return Calendar;
-    case 'ShoppingBag':
+    case "ShoppingBag":
       return ShoppingBag;
-    case 'Briefcase':
+    case "Briefcase":
       return Briefcase;
-    case 'Book':
+    case "Book":
       return Book;
-    case 'Dumbbell':
+    case "Dumbbell":
       return Dumbbell;
-    case 'Music':
+    case "Music":
       return Music;
-    case 'Camera':
+    case "Camera":
       return Camera;
-    case 'Coffee':
+    case "Coffee":
       return Coffee;
-    case 'Gift':
+    case "Gift":
       return Gift;
-    case 'Lightbulb':
+    case "Lightbulb":
       return Lightbulb;
-    case 'Users':
+    case "Users":
       return Users;
-    case 'Wrench':
+    case "Wrench":
       return Wrench;
-    case 'Package':
+    case "Package":
       return Package;
     default:
       return Star;
   }
 }
 
-export function CategoryIcon({ iconName, size = 24, className = '', color }: CategoryIconProps) {
+export function CategoryIcon({
+  iconName,
+  size = 24,
+  className = "",
+  color,
+  textColor = "#FFFFFF",
+}: CategoryIconProps) {
   // Get the icon component using switch statement
   const Icon = getIconComponent(iconName);
-  
+
   // Calculate wrapper size based on icon size
   const wrapperSize = size * 1.8;
   const iconSize = size * 1.2; // Increased from 0.8 to 1.2 (1.5x bigger)
-  
+
   return (
-    <div 
+    <div
       className={`flex items-center justify-center rounded-full flex-shrink-0 ${className}`}
       style={{
-        backgroundColor: color || '#3B82F6',
+        backgroundColor: color || "#3B82F6",
         width: `${wrapperSize}px`,
         height: `${wrapperSize}px`,
       }}
     >
-      <Icon 
-        size={iconSize} 
-        strokeWidth={2} 
-        className="text-white" 
+      <Icon
+        size={iconSize}
+        strokeWidth={2}
+        style={{
+          color: textColor,
+        }}
         fill="none"
         aria-hidden="true"
       />
