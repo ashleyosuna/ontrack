@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import WelcomePage from './components/WelcomeScreen';
+import LoadingPage from './components/LoadingScreen';
 import { Onboarding } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
 import { CategoryView } from './components/CategoryView';
@@ -18,7 +19,7 @@ import { storage } from './utils/storage';
 import { generateSuggestions, generateCategoryBasedSuggestions } from './utils/assistant';
 import { generateDemoTasks } from './utils/demoData';
 
-type View = 'welcome' | 'onboarding' | 'dashboard' | 'categories' | 'category' | 'add-task' | 'edit-task' | 'settings' | 'reminders' | 'create-template' | 'edit-template';
+type View = 'welcome' | 'onboarding' | 'loading' | 'dashboard' | 'categories' | 'category' | 'add-task' | 'edit-task' | 'settings' | 'reminders' | 'create-template' | 'edit-template';
 
 export default function App() {
   console.log("test");
@@ -611,13 +612,20 @@ if (currentView === 'welcome') {
   );
 }
 
+if (currentView === 'loading') {
+  return (
+    <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+  )
+}
+
 // --- Onboarding Screen ---
 if (currentView === 'onboarding') {
   return (
     <Onboarding
       onComplete={(data) => {
         handleOnboardingComplete(data);
-        setCurrentView('dashboard'); // go to dashboard after onboarding
+        // setCurrentView('dashboard'); // go to dashboard after onboarding
+        setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
       }}
       onDemoMode={handleDemoMode}
     />
