@@ -45,5 +45,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Need camera to capture documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save captured photos.</string>
 </dict>
 </plist>

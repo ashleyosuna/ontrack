@@ -9,6 +9,9 @@ import { CategoryIcon } from "./components/CategoryIcon";
 import { TemplateSelectionDialog } from "./components/TemplateSelectionDialog";
 import { TaskCreationModeDialog } from "./components/TaskCreationModeDialog";
 import { TemplateForm } from "./components/TemplateForm";
+import { UploadDocumentForm } from "./components/UploadDocumentForm";
+import { PhotoForm } from "./components/PhotoForm";
+import { DocumentsView } from "./components/Documents";
 import { Button } from "./components/ui/button";
 import {
   Home,
@@ -18,6 +21,7 @@ import {
   Sparkles,
   CheckCircle,
   Bell,
+  Files,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
@@ -47,7 +51,10 @@ type View =
   | "create-template"
   | "edit-template"
   | "pre-add-task"
-  | "select-template";
+  | "select-template"
+  | "documents"
+  | "add-document-upload"
+  | "add-document-camera";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -561,12 +568,16 @@ export default function App() {
   };
 
   const handleModeSelected = (
-    mode: "quick" | "template" | "create-template"
+    mode: "quick" | "template" | "create-template" | "document-upload" | "document-camera"
   ) => {
     setPreviousView(currentView);
     if (mode === "quick") {
       // Go directly to TaskForm (start from scratch)
       setCurrentView("add-task");
+    } else if (mode === "document-upload") {
+      setCurrentView("add-document-upload");
+    } else if (mode === "document-camera") {
+      setCurrentView("add-document-camera")
     } else if (mode === "template") {
       // Open template selection dialog
       // setShowTemplateDialog(true);
@@ -663,6 +674,11 @@ export default function App() {
     setCurrentView("categories");
     setSelectedCategoryId(null);
   };
+
+  const navigateToDocuments = () => {
+    setCurrentView("documents");
+    setSelectedCategoryId(null);
+  }
 
   const navigateToReminders = () => {
     setCurrentView("reminders");
@@ -872,6 +888,24 @@ export default function App() {
           />
         )}
 
+        {currentView === "add-document-upload" && (
+          <UploadDocumentForm
+            task={selectedTask}
+            categories={categories}
+            onSave={handleEditTask}
+            onCancel={navigateToDashboard}
+            onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
+          />
+        )}
+
+        {currentView === "add-document-camera" && (
+          <PhotoForm
+            onSave={handleEditTask}
+            onCancel={navigateToDashboard}
+          />
+        )}
+
         {currentView === "edit-task" && selectedTask && (
           <TaskForm
             task={selectedTask}
@@ -897,7 +931,19 @@ export default function App() {
             onDeleteTemplate={handleDeleteTemplate}
           />
         )}
-
+        {currentView === "documents" && (
+          <DocumentsView
+            tasks={tasks}
+            templates={templates}
+            onOpenUpload={() => setCurrentView("add-document-upload")}
+            onOpenCamera={() => setCurrentView("add-document-camera")}
+            onBack={() => setCurrentView("dashboard")}
+            onOpenTask={(taskId) => {
+              setSelectedTaskId(taskId);
+              setCurrentView("edit-task");
+            }}
+          />
+        )}
         {currentView === "reminders" && (
           <RemindersView
             tasks={tasks}
@@ -975,7 +1021,15 @@ export default function App() {
               <List className="h-6 w-6" />
               <span className="text-xs">Categories</span>
             </button>
-
+            <button
+              onClick={navigateToDocuments}
+              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
+                currentView === "documents" ? "text-primary" : "text-gray-400"
+              }`}
+            >
+              <Files className="h-6 w-6" />
+              <span className="text-xs">Documents</span>
+            </button>
             <button
               onClick={navigateToReminders}
               className={`flex flex-col items-center justify-center pt-3 transition-colors ${
