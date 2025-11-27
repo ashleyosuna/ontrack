@@ -34,7 +34,7 @@ function CategoryCard({
           className=""
         />
         <div>
-          <div className="mb-[-1px] flex-grow">{category.name}</div>
+          <div className="flex-grow leading-tight">{category.name}</div>
           <div className="text-gray-500 text-xs">
             {category.taskCount} tasks
           </div>
