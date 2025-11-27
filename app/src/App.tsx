@@ -956,7 +956,7 @@ export default function App() {
       {(currentView === "dashboard" || currentView === "categories") && (
         <button
           onClick={() => navigateToAddTask()}
-          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
+          className="fixed bottom-20 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
         >
           <Plus className="h-5 w-5" />
           <span className="text-sm">New Task</span>
