@@ -5,6 +5,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 import {
   Select,
@@ -16,6 +17,7 @@ import {
 import { ArrowLeft, Bell, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { AddReminderDialog } from "./AddReminderDialog";
+import { FilePreview } from "./FilePreview";
 
 interface UploadDocumentProps {
   tasks: Task[];
@@ -45,6 +47,8 @@ export function UploadDocumentForm({
   const [notes, setNotes] = useState("");
   const [showAddReminderDialog, setShowAddReminderDialog] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [attachMode, setAttachMode] = useState<boolean>(false);
+  const [docToTask, setDocToTask] = useState<boolean>(true);
 
   const readAsDataURL = (f: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -72,8 +76,14 @@ export function UploadDocumentForm({
     e.preventDefault();
 
     if (!attachmentDataUrl) return;
+
+    /*Create a new task from the document*/
+    if (docToTask) {
+      return;
+    }
     /*Attach to existing tasks*/
-    if (selectedTaskId) {
+    if (attachMode) {
+      if (!selectedTaskId) return;
       onAttachToTask(selectedTaskId, attachmentDataUrl);
       onCancel();
       return;
@@ -85,10 +95,10 @@ export function UploadDocumentForm({
       title: title.trim(),
       description: description.trim(),
       date: new Date(),
-      categoryId,
+      categoryId: "",
       notes: notes.trim(),
       attachments: [attachmentDataUrl],
-      reminders,
+      reminders: [],
       completed: false,
     })
     onCancel();
@@ -103,22 +113,6 @@ export function UploadDocumentForm({
     // });
   };
 
-  const getFrequencyLabel = (frequency: string) => {
-    switch (frequency) {
-      case "once":
-        return "Once";
-      case "daily":
-        return "Daily";
-      case "weekly":
-        return "Weekly";
-      case "monthly":
-        return "Monthly";
-      case "custom":
-        return "Custom";
-      default:
-        return "Once";
-    }
-  };
 
   return (
     <div className="space-y-5 relative">
@@ -131,11 +125,11 @@ export function UploadDocumentForm({
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
-      <div className="flex justify-center">
+      {/*<div className="flex justify-center">
         <h2 className="text-[#312E81] text-xl font-semibold">
           {template ? "Edit Template" : "Upload Document"}
         </h2>
-      </div>
+      </div>*/}
 
       {/* Form if a file has not been uploaded XXX make better and allow camera*/}
       { !file && (
@@ -171,28 +165,11 @@ export function UploadDocumentForm({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!name.trim() || !title.trim() || !categoryId}
+                  disabled={!name.trim() || !title.trim()}
                   className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
                 >
                   Upload Document
                 </Button>
-
-                {template && onDelete && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => {
-                      if (
-                        confirm("Are you sure you want to delete this template?")
-                      ) {
-                        onDelete(template.id);
-                      }
-                    }}
-                    className="h-12"
-                  >
-                    Delete Template
-                  </Button>
-                )}
 
                 <Button
                   type="button"
@@ -227,6 +204,44 @@ export function UploadDocumentForm({
                   Current: {file.name} {loadingParse && "(parsing...)"}
                 </p>
               </div>
+              { attachmentDataUrl && (
+                <div>
+                <Label className="text-[#312E81]">Document Preview</Label>
+                  <FilePreview
+                    file={file || undefined}
+                    dataUrl={attachmentDataUrl || undefined}
+                    filename={file?.name}
+                    height={384}
+                    className="bg-white/60"
+                  />
+                </div>
+              )}
+
+              {/* Mode toggle */}
+              <div className="flex items-center justify-between py-2">
+                <Label className="text-[#312E81]">Attach documents to existing tasks</Label>
+                <Switch
+                  checked={attachMode}
+                  onCheckedChange={(val: boolean) => {
+                    setAttachMode(val);
+                    if (!val) setSelectedTaskId("");
+                  }}
+                  className="bg-gray-300 data-[state=checked]:bg-[#312E81] transition-colors duration-200"
+                />
+              </div>
+
+              {/* Create task from document toggle */}
+              <div className="flex items-center justify-between py-2">
+                <Label className="text-[#312E81]">Convert Document to Task</Label>
+                <Switch
+                  checked={docToTask}
+                  onCheckedChange={(val: boolean) => {
+                    setAttachMode(val);
+                    if (!val) setSelectedTaskId("");
+                  }}
+                  className="bg-gray-300 data-[state=checked]:bg-[#312E81] transition-colors duration-200"
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-[#312E81]">
@@ -244,36 +259,24 @@ export function UploadDocumentForm({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-[#312E81]">
-                  Title *
-                </Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setTitle(e.target.value)
-                  }
-                  placeholder="Title for task/template"
-                  className="h-12"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-[#312E81]">
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setDescription(e.target.value)
-                  }
-                  placeholder="Add details..."
-                  rows={3}
-                />
-              </div>
+              { attachMode && ( 
+                <div>
+                </div>
+              )}
+                  <div className="space-y-2">
+                  <Label htmlFor="description" className="text-[#312E81]">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setDescription(e.target.value)
+                    }
+                    placeholder="Add details..."
+                    rows={3}
+                  />
+                </div>
 
               {rawText && (
                 <div className="space-y-1">
@@ -301,73 +304,6 @@ export function UploadDocumentForm({
                   rows={3}
                 />
               </div>
-
-              {/* Category selection (required since you validate categoryId) */}
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-[#312E81]">
-                  Category *
-                </Label>
-                <Select
-                  value={categoryId}
-                  onValueChange={(val: string) => setCategoryId(val)}
-                  required
-                >
-                  <SelectTrigger id="category" className="h-12">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          <CategoryIcon
-                            iconName={c.icon}
-                            size={16}
-                            color={c.color}
-                          />
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Reminders list */}
-              {reminders.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-[#312E81]">Reminders</Label>
-                  <div className="space-y-2">
-                    {reminders.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center justify-between text-sm bg-white/70 px-3 py-2 rounded border"
-                      >
-                        <span>
-                          {format(r.time, "PPp")} · {getFrequencyLabel(r.frequency)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => removeReminder(r.id)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowAddReminderDialog(true)}
-                className="flex items-center gap-2"
-              >
-                <Bell className="h-4 w-4" />
-                Add Reminder
-              </Button>
-
               <div className="flex flex-col gap-3 pt-2">
                 <Button
                   type="submit"
@@ -376,23 +312,8 @@ export function UploadDocumentForm({
                   }
                   className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
                 >
-                  {template ? "Save Changes" : "Save Document"}
+                  {attachmentDataUrl ? "Save Changes" : "Save Document"}
                 </Button>
-
-                {template && onDelete && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => {
-                      if (confirm("Delete this template?")) {
-                        onDelete(template.id);
-                      }
-                    }}
-                    className="h-12"
-                  >
-                    Delete Template
-                  </Button>
-                )}
 
                 <Button
                   type="button"
@@ -405,12 +326,6 @@ export function UploadDocumentForm({
               </div>
             </form>
           </Card>
-
-          <AddReminderDialog
-            open={showAddReminderDialog}
-            onOpenChange={setShowAddReminderDialog}
-            onAdd={addReminder}
-          />
         </>
       )}
     </div>
