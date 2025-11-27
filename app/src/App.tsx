@@ -35,6 +35,7 @@ import {
 } from "./utils/assistant";
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
+import CategoryTab from "./components/CategoryTab";
 
 type View =
   | "dashboard"
@@ -760,68 +761,14 @@ export default function App() {
         )}
 
         {currentView === "categories" && userProfile && (
-          <div className="space-y-4">
-            <h1 className="text-[#312E81] text-2xl font-bold">Categories</h1>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Completed Tasks Category */}
-              <div
-                className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm border-t-4 border-green-500"
-                onClick={() => {
-                  setSelectedCategoryId("completed");
-                  setCurrentView("category");
-                }}
-              >
-                <div className="text-center space-y-1.5">
-                  <div className="mb-1 flex justify-center">
-                    <CheckCircle
-                      style={{ width: "48px", height: "48px" }}
-                      className="text-green-500"
-                    />
-                  </div>
-                  <h4 className="text-sm text-[#312E81]">Completed</h4>
-                  <p className="text-xs text-[#4C4799]">
-                    {tasks.filter((t) => t.completed).length} tasks
-                  </p>
-                </div>
-              </div>
-
-              {categories
-                .filter(
-                  (category) =>
-                    !userProfile.hiddenCategories.includes(category.name)
-                )
-                .map((category) => {
-                  const categoryTaskCount = tasks.filter(
-                    (t) => t.categoryId === category.id && !t.completed
-                  ).length;
-                  return (
-                    <div
-                      key={category.id}
-                      className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm"
-                      onClick={() => navigateToCategory(category.id)}
-                      style={{ borderTop: `4px solid ${category.color}` }}
-                    >
-                      <div className="text-center space-y-1.5">
-                        <div className="mb-1 flex justify-center">
-                          <CategoryIcon
-                            iconName={category.icon}
-                            size={48}
-                            color={category.color}
-                          />
-                        </div>
-                        <h4 className="text-sm text-[#312E81]">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-[#4C4799]">
-                          {categoryTaskCount}{" "}
-                          {categoryTaskCount === 1 ? "task" : "tasks"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+          <CategoryTab
+            userProfile={userProfile}
+            tasks={tasks}
+            categories={categories}
+            setSelectedCategoryId={setSelectedCategoryId}
+            setCurrentView={setCurrentView}
+            navigateToCategory={navigateToCategory}
+          />
         )}
 
         {currentView === "category" && selectedCategoryId === "completed" && (
