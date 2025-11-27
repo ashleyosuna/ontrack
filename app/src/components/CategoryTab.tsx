@@ -26,7 +26,7 @@ function CategoryCard({
       }}
       onClick={navigateToCategory}
     >
-      <div className="flex w-full px-4 gap-2 items-center">
+      <div className="flex w-full px-2 gap-2 items-center">
         <CategoryIcon
           iconName={category.icon}
           size={20}
@@ -34,7 +34,9 @@ function CategoryCard({
           className=""
         />
         <div>
-          <div className="flex-grow leading-tight">{category.name}</div>
+          <div className="flex-grow leading-tight font-semibold text-gray-700">
+            {category.name}
+          </div>
           <div className="text-gray-500 text-xs">
             {category.taskCount} tasks
           </div>
