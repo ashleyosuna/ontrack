@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Task, Category, Reminder, Template } from "../types";
 import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
@@ -18,6 +18,7 @@ import { ArrowLeft, Bell, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { AddReminderDialog } from "./AddReminderDialog";
 import { FilePreview } from "./FilePreview";
+import * as chrono from "chrono-node";
 
 interface UploadDocumentProps {
   tasks: Task[];
@@ -49,6 +50,32 @@ export function UploadDocumentForm({
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [attachMode, setAttachMode] = useState<boolean>(false);
   const [docToTask, setDocToTask] = useState<boolean>(true);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const inferCategory = (text: string, cats: Category[], fallback?: string) => {
+    const kw: Record<string, string[]> = {
+      /*These are only the default categories, thoughts on extending them in the future or using an llm?*/
+      'Home Maintenance': [],
+      'Health': [],
+      'Taxes & Finance': [],
+      'Subscriptions': [],
+      'Warranties': [],
+      'Travel': [],
+      'Vehicle': [],
+      'Insurance': [],
+      'Personal': [] // This is the default!
+    }
+    const lower = text.toLowerCase();
+    let best: { id: string; score: number } | null = null;
+    for (const c of cats) {
+      const name = c.name || ''
+      const list = [...(kw[name] || []), name.toLowerCase()];
+      const score = list.reduce((s, k) => (lower.includes(k) ? s + 1 : s), 0);
+      if (!best || score > best.score) best = {id: c.id, score}
+    }
+
+    return best && best.score > 0 ? best.id : (fallback || "");
+  };
 
   const readAsDataURL = (f: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -58,6 +85,15 @@ export function UploadDocumentForm({
       r.readAsDataURL(f);
     })
 
+  const replaceFile = () => inputRef.current?.click();
+
+  const onReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) void handleFile(f); // your existing loader -> sets preview/name
+    e.currentTarget.value = ""; // allow re-selecting same file later
+  };
+
+
   const handleFile = async (f: File) => {
     setFile(f);
     const base = f.name.replace(/\.[a-z0-9]+$/i, "");
@@ -65,11 +101,6 @@ export function UploadDocumentForm({
     else setName(f.name.replace(/\.[a-z0-9]+$/i, ""));
     const dataUrl = await readAsDataURL(f);
     setAttachmentDataUrl(dataUrl)
-    /*
-    setLoadingParse(true);
-    // handle things
-    setLoadingParse(false);
-     */
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -143,10 +174,7 @@ export function UploadDocumentForm({
                   id="file"
                   type="file"
                   accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) void handleFile(f);
-                  }}
+                  onChange={onReplace}
                   className="h-60 border-dashed border-2 border-[#312E81] rounded-lg text-sm py-14 px-6 cursor-pointer"
                 />
                 <p className="text-sm text-[#4C4799] text-center">
@@ -192,13 +220,11 @@ export function UploadDocumentForm({
                   Replace File
                 </Label>
                 <Input
+                  ref={inputRef}
                   id="file"
                   type="file"
                   accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const f = e.target.files?.[0];
-                    if (f) void handleFile(f);
-                  }}
+                  onChange={onReplace}
                 />
                 <p className="text-xs text-[#4C4799]">
                   Current: {file.name} {loadingParse && "(parsing...)"}
@@ -212,7 +238,7 @@ export function UploadDocumentForm({
                     dataUrl={attachmentDataUrl || undefined}
                     filename={file?.name}
                     height={384}
-                    className="bg-white/60"
+                    className="bg-white/60 space-y-6"
                   />
                 </div>
               )}
@@ -236,7 +262,7 @@ export function UploadDocumentForm({
                 <Switch
                   checked={docToTask}
                   onCheckedChange={(val: boolean) => {
-                    setAttachMode(val);
+                    setDocToTask(val);
                     if (!val) setSelectedTaskId("");
                   }}
                   className="bg-gray-300 data-[state=checked]:bg-[#312E81] transition-colors duration-200"

@@ -35,6 +35,7 @@
             "@radix-ui/react-toggle-group": "^1.1.2",
             "@radix-ui/react-tooltip": "^1.1.8",
             "capacitor-plugin-safe-area": "^4.0.3",
+            "chrono-node": "^2.9.0",
             "class-variance-authority": "^0.7.1",
             "clsx": "*",
             "cmdk": "^1.1.1",
