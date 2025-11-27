@@ -719,7 +719,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        style={{ top: "calc(var(--safe-area-inset-top)" }}
+      />
 
       {/* Mobile Header */}
       <header
@@ -737,7 +740,10 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-6 max-w-2xl mx-auto">
+      <main
+        className="px-4 max-w-2xl mx-auto py-6"
+        // style={{ paddingBottom: "calc(var(--safe-area-inset-bottom + 150px))" }}
+      >
         {currentView === "dashboard" && (
           <Dashboard
             tasks={tasks}
@@ -949,10 +955,43 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Floating Action Button */}
+      {(currentView === "dashboard" || currentView === "categories") && (
+        <button
+          onClick={() => navigateToAddTask()}
+          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">New Task</span>
+        </button>
+      )}
+
+      {/* Task Creation Mode Dialog */}
+      {/* {currentView === "pre-add-task" && (
+        <TaskCreationModeDialog
+          open={showModeDialog}
+          onOpenChange={setShowModeDialog}
+          onSelectMode={handleModeSelected}
+          onCancel={navigateToDashboard}
+        />
+      )} */}
+
+      {/* Template Selection Dialog
+      {currentView === "select-template" && (
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          categories={categories}
+          customTemplates={templates}
+          onSelectTemplate={handleTemplateSelected}
+          onDeleteTemplate={handleDeleteTemplate}
+        />
+      )} */}
+
+      {/* bottom navigation */}
       {isMainView && (
         <nav
-          className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
+          className="sticky bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
           style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
         >
           <div className="grid grid-cols-4 max-w-2xl mx-auto">
@@ -998,39 +1037,6 @@ export default function App() {
           </div>
         </nav>
       )}
-
-      {/* Floating Action Button */}
-      {(currentView === "dashboard" || currentView === "categories") && (
-        <button
-          onClick={() => navigateToAddTask()}
-          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-sm">New Task</span>
-        </button>
-      )}
-
-      {/* Task Creation Mode Dialog */}
-      {/* {currentView === "pre-add-task" && (
-        <TaskCreationModeDialog
-          open={showModeDialog}
-          onOpenChange={setShowModeDialog}
-          onSelectMode={handleModeSelected}
-          onCancel={navigateToDashboard}
-        />
-      )} */}
-
-      {/* Template Selection Dialog
-      {currentView === "select-template" && (
-        <TemplateSelectionDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          categories={categories}
-          customTemplates={templates}
-          onSelectTemplate={handleTemplateSelected}
-          onDeleteTemplate={handleDeleteTemplate}
-        />
-      )} */}
     </div>
   );
 }
