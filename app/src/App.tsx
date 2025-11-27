@@ -722,22 +722,25 @@ export default function App() {
       <Toaster position="top-center" />
 
       {/* Mobile Header */}
-      <header
-        className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm"
+      {/* <header
+        className="sticky top-0 z-50 bg-white border-b shadow-sm"
         style={{ paddingTop: "var(--safe-area-inset-top)" }}
       >
         <div className="px-4 pb-4">
           <div className="flex items-center justify-center">
-            <h2 className="text-[#F8FAFC] text-3xl relative">
+            <h2 className="text-primary text-3xl relative">
               <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
               OnTrack
             </h2>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
-      <main className="px-4 py-6 max-w-2xl mx-auto">
+      <main
+        className="px-4 pb-6 max-w-2xl mx-auto"
+        style={{ paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+      >
         {currentView === "dashboard" && (
           <Dashboard
             tasks={tasks}

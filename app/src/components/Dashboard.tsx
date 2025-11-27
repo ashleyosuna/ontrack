@@ -29,6 +29,7 @@ import {
 } from "date-fns";
 import { CalendarView } from "./CalendarView";
 import { TaskDetailDialog } from "./TaskDetailDialog";
+import SmartSuggestions from "./SmartSuggestions";
 
 interface DashboardProps {
   tasks: Task[];
@@ -100,7 +101,11 @@ export function Dashboard({
       </div>
 
       {/* Assistant Suggestions */}
-      {activeSuggestions.length > 0 && (
+      <SmartSuggestions
+        suggestions={activeSuggestions}
+        onDismissSuggestion={onDismissSuggestion}
+      />
+      {/* {activeSuggestions.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-4 border border-blue-200">
           <div className="flex items-start gap-3 mb-3">
             <div className="text-2xl">💡</div>
@@ -149,7 +154,7 @@ export function Dashboard({
             ))}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Overdue Tasks Section */}
       {overdueTasks.length > 0 && (
