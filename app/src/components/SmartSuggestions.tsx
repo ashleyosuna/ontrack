@@ -45,7 +45,7 @@ export default function SmartSuggestions({
                     size="sm"
                     variant="ghost"
                     onClick={() => onDismissSuggestion(suggestion.id)}
-                    className="text-xs h-8 text-secondary"
+                    className="h-8 text-secondary"
                   >
                     ✕
                   </Button>
