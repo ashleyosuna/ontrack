@@ -741,8 +741,8 @@ export default function App() {
 
       {/* Main Content */}
       <main
-        className="px-4 max-w-2xl mx-auto py-6"
-        // style={{ paddingBottom: "calc(var(--safe-area-inset-bottom + 150px))" }}
+        className="px-4 max-w-2xl mx-auto pt-6"
+        style={{ paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)" }}
       >
         {currentView === "dashboard" && (
           <Dashboard
@@ -991,7 +991,7 @@ export default function App() {
       {/* bottom navigation */}
       {isMainView && (
         <nav
-          className="sticky bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
+          className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
           style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
         >
           <div className="grid grid-cols-4 max-w-2xl mx-auto">
