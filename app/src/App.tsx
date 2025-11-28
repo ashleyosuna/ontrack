@@ -682,7 +682,6 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          {/* <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" /> */}
           <img
             src="logo.webp"
             width={"35px"}
