@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import {createGoogleEvent} from "../utils/CreateGoogleEvent";
 import {
   Select,
   SelectContent,
@@ -93,6 +94,16 @@ export function TaskForm({
   const [templateName, setTemplateName] = useState("");
   const [editMode, setEditMode] = useState(false);
 
+  const [addToGoogle, setAddToGoogle] = useState<boolean>(() => !!localStorage.getItem("google_access_token"));
+  useEffect(()=> {
+    const onStorage = (storeEvent: StorageEvent) =>{
+      if(storeEvent.key === "google_access_token"){
+        setAddToGoogle(!!storeEvent.newValue);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []); 
   useEffect(() => {
     if (task) {
       setFormTask(task);
@@ -117,6 +128,7 @@ export function TaskForm({
     else setEditMode(false);
   }, [formTask]);
 
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -143,6 +155,29 @@ export function TaskForm({
       saveAsTemplate,
       templateName.trim()
     );
+
+    // If the user already has google calendar access and has token enabled for this task
+    (async () => {
+      try{
+        const token = localStorage.getItem("google_access_token");
+        if(!token || !addToGoogle) return;
+
+        await createGoogleEvent({
+          title: formTask.title.trim(),
+          description: formTask.description.trim(),
+          date: formTask.date,
+        // categoryId: formTask.categoryId,
+          //notes: formTask.notes.trim(),
+          //attachments: formTask.attachments,
+          //reminders: formTask.reminders,
+          endDate: (formTask as any).endDate ?? undefined, 
+          allDay: Boolean((formTask as any).allDay),
+          location: (formTask as any).location ?? "",
+        });
+      }catch (err){
+        console.error("Failed to create Google Calendar event:", err);
+      }
+    })();
   };
 
   const handleFileUpload = () => {
@@ -303,7 +338,7 @@ export function TaskForm({
                   <Calendar
                     mode="single"
                     selected={formTask?.date}
-                    onSelect={(newDate) =>
+                    onSelect={(newDate:any) =>
                       newDate && setFormTask({ ...formTask, date: newDate })
                     }
                   />
@@ -398,7 +433,7 @@ export function TaskForm({
                             <Calendar
                               mode="single"
                               selected={selectedDate}
-                              onSelect={(newDate) =>
+                              onSelect={(newDate:any) =>
                                 newDate && setSelectedDate(newDate)
                               }
                             />
@@ -578,7 +613,7 @@ export function TaskForm({
                 <Checkbox
                   id="saveAsTemplate"
                   checked={saveAsTemplate}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked:any) =>
                     setSaveAsTemplate(checked as boolean)
                   }
                 />
@@ -609,7 +644,24 @@ export function TaskForm({
               )}
             </div>
           )}
-
+          {/* Google calendar add toggle */}
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                id="addToGoogle"
+                checked={addToGoogle}
+                onCheckedChange={(checked: any) => setAddToGoogle(checked as boolean)}
+                />
+                <Label htmlFor="addToGoogle" className="text-sm text-[#312e81] cursor-pointer">
+                  Add to Google Calendar
+                </Label>
+              </div>
+              {!localStorage.getItem("google_access_token") && (
+                <span className="text-xs text-[#4c4799]">Connect in Settings to enable</span>
+              )}
+            </div>
+          </div>
           <div className="flex flex-col gap-3 pt-4">
             <Button
               type="submit"

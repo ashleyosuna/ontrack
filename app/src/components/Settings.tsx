@@ -1,14 +1,17 @@
-import { useState } from "react";
-import { Category, UserProfile, Template } from "../types";
-// import { CategoryIcon } from "./CategoryIcon";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
-import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { ArrowLeft, Plus, Trash2, FileText, Edit } from "lucide-react";
-import { DEFAULT_CATEGORIES } from "../types";
+
+import { useState, useRef, useEffect } from 'react';
+import { Category, UserProfile, Template } from '../types';
+import { CategoryIcon } from './CategoryIcon';
+import { Card } from './ui/card';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { Switch } from './ui/switch';
+import { Input } from './ui/input';
+import { Badge } from './ui/badge';
+import { ArrowLeft, Plus, Trash2, FileText, Edit } from 'lucide-react';
+import { DEFAULT_CATEGORIES } from '../types';
+import { Separator } from './ui/separator';
+import { createGoogleEvent } from '../utils/CreateGoogleEvent';
 import {
   Select,
   SelectContent,
@@ -16,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Separator } from "./ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +29,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { CategoryIcon } from "./CategoryIcon";
 // import Icon from "./Icons";
 // import { getIconComponent } from "./CategoryIcon";
 
@@ -197,9 +198,199 @@ export function Settings({
     setShowDemoModeDialog(false);
     onToggleDemoMode(true);
   };
+  const customTemplates = templates.filter(t => !t.isPreset);
+  // CSV conversion helper -> transforms every value into a csv compatible string
+  const csvEscape = (value: any) => {
+    if (value == null) return "";
+    const s = String(value);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
 
-  const customTemplates = templates.filter((t) => !t.isPreset);
+  // transforms the value into a compatible Date format 
+  const toDate = (value: any): Date | null => {
+    if(!value) return null;
+    if(value instanceof Date) return value;
+    const dateInst = new Date(value);
+    return isNaN(dateInst.getTime()) ? null : dateInst;
+  };
 
+  const formatDateForCSV = (date: Date | null) => {
+    if(!date) return "";
+
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    
+    return `${mm}/${dd}/${yyyy}`;
+    
+  }
+
+  const formatTimeForCSV = (date: Date | null) => {
+    if(!date) return "";
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutes} ${ampm}`;
+  }
+  const isAllDayEvent = (date: Date |null) => {
+    if(!date) return false;
+    return date.getHours() === 0 && date.getMinutes() === 0;
+  }
+
+  const exportTasksToGoogleCalendarCSV = (taskList: any[]) => {
+    if(!taskList || taskList.length === 0){
+      alert("No tasks to export to CSV");
+      return;
+    }
+    const headers = [
+      "Subject", 
+      "Start Date", 
+      "Start Time", 
+      "End Date", 
+      "End Time", 
+      "All Day Event", 
+      "Description", 
+      "Location", 
+      "Private",
+    ];
+    const rows = taskList.map((task) => {
+      const title = task.title ?? task.name ?? "Task";
+      const description = (task.description ?? task.notes ?? "").toString().replace(/\r?\n/g, " ");
+      const start = toDate(task.startDate ?? task.start ?? task.date ?? task.due ?? task.dueDate ?? task.createdAt);
+      const end = toDate(task.endDate ?? task.end ?? null) ?? start;
+      const allDay = isAllDayEvent(start);
+      const startDate = formatDateForCSV(start);
+      const endDate = formatDateForCSV(end);
+      const startTime = allDay ? "" : formatTimeForCSV(start);
+      const endTime = allDay ? "" : formatTimeForCSV(end);
+      const location = task.location ?? "";
+
+      return [
+        csvEscape(title),
+        startDate, 
+        startTime, 
+        endDate, 
+        endTime, 
+        allDay ? "True" : "False", 
+        csvEscape(description),
+        csvEscape(location),
+        task.private ? "True" : "False",
+      ].join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ontrack-tasks-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAllTasksToGC = async () => {
+    if(!hasGoogleToken){
+      alert("Please connect to Google Calendar first.");
+      return;
+    }
+    if(!tasks || tasks.length ==0){
+      alert("No tasks to sync.");
+    }
+    const results = await Promise.allSettled(
+      tasks.map(async (t: any) => {
+        const title = t.title ?? t.name ?? "Task";
+        const description = (t.description ?? t.notes ?? "") as string;
+        const start = toDate(t.startDate ?? t.start ?? t.date ?? t.due ?? t.dueDate ?? t.createdAt);
+        const end = toDate(t.endDate ?? t.end ?? null) ?? start;
+        const allDay = t.allDay ?? isAllDayEvent(start);
+        const location = t.location ?? "";
+
+        return createGoogleEvent({
+          title, 
+          description, 
+          date:start, 
+          endDate: end, 
+          allDay,
+          location
+        });
+      })
+    );
+
+    const successes = results.filter((r) => r.status === "fulfilled").length;
+    const failures = results.filter((r) => r.status === "rejected");
+
+    if(failures.length == 0){
+      alert(`Successfully synced ${successes} tasks to Google Calendar`);
+
+    }else{
+      console.error("Some events failed:", failures);
+     // alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
+
+    }
+  } ;
+
+  //const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+  const GOOGLE_CLIENT_ID = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) || "YOUR_GOOGLE_CLIENT_ID";
+  const tokenClientRef = useRef<any | null>(null);
+  const [hasGoogleToken, setHasGoogleToken] = useState<boolean>(() => !!localStorage.getItem("google_access_token"));
+  
+  const loadGsi = () => 
+    new Promise<void>((resolve) =>{
+      if((window as any).google) return resolve();
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.onload  = () => resolve();
+      document.head.appendChild(script);
+    });
+
+  const initTokenClient = async () => {
+    await loadGsi();
+    if(!(window as any).google) throw new Error("gsi client not available");
+    if(!tokenClientRef.current){
+      tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID, 
+        scope: "https://www.googleapis.com/auth/calendar.events", 
+        callback: (resp:any) => {
+          if(resp.error){
+            console.error("google token error", resp);
+            return;
+          }
+          localStorage.setItem("google_access_token", resp.access_token);
+          setHasGoogleToken(true);
+          onUpdateProfile({ ...userProfile, calendarIntegration: true});
+        },
+      });
+    }
+  };
+
+  const requestGooglePermission = async () => {
+    try {
+      if(!tokenClientRef.current) await initTokenClient();
+      tokenClientRef.current.requestAccessToken({ prompt: "consent"});
+
+    }catch (err){
+      console.error("requestGooglePermission failed", err);
+    }
+  };
+
+  const disconnectGoogleCalendar = () => {
+    localStorage.removeItem("google_access_token");
+    tokenClientRef.current = null;
+    setHasGoogleToken(false);
+    onUpdateProfile({ ...userProfile, calendarIntegration: false});
+  };
+  // track state when changes made in other tabs  
+  // useEffect(() => {
+  //   const onStorage = (stEvent: StorageEvent)
+  // })
   return (
     <div className="space-y-5">
       {/* Header - Remove back button on mobile settings */}
@@ -221,7 +412,7 @@ export function Settings({
             </div>
             <Switch
               checked={userProfile.calendarIntegration}
-              onCheckedChange={(checked) =>
+              onCheckedChange={(checked: any) =>
                 onUpdateProfile({
                   ...userProfile,
                   calendarIntegration: checked,
@@ -240,7 +431,7 @@ export function Settings({
             </div>
             <Switch
               checked={userProfile.notificationsEnabled}
-              onCheckedChange={(checked) =>
+              onCheckedChange={(checked: any) =>
                 onUpdateProfile({
                   ...userProfile,
                   notificationsEnabled: checked,
@@ -511,7 +702,7 @@ export function Settings({
         <Separator />
 
         <div className="space-y-2">
-          <Button variant="outline" className="w-full h-12">
+          <Button variant="outline" className="w-full h-12" onClick={() => exportTasksToGoogleCalendarCSV(tasks)}>
             Export Data
           </Button>
           <Button variant="outline" className="w-full h-12">
@@ -521,7 +712,34 @@ export function Settings({
             Clear All Data
           </Button>
         </div>
+      <div className="space-y-2">
+        {/*exports data in csv format for google calendar */}
+        {!hasGoogleToken ? (
+          <Button variant="outline" className="w-full h-12" onClick={requestGooglePermission}>
+            Connect Google Calendar
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 h-12" onClick={() => alert("Google Calendar connected")}  >
+            Google Connected
+          </Button>
+          <Button variant="ghost" className="h-12" onClick={disconnectGoogleCalendar}>
+            Disconnect
+          </Button>
+          </div>
+        )}
+      {/* Sync all tasks to Google Calendar */}
+      <Button 
+        variant = "secondary" className="w-full h-12"
+        onClick={exportAllTasksToGC}
+        disabled={!hasGoogleToken || !tasks || tasks.length ===0}
+        >
+          Sync All Tasks to Google Calendar
+      </Button>
       </div>
+      
+    </div>
+
 
       {/* About */}
       <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -534,7 +752,7 @@ export function Settings({
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!categoryToDelete}
-        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+        onOpenChange={(open: any) => !open && setCategoryToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
