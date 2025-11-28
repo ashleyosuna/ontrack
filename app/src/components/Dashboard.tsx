@@ -91,12 +91,13 @@ export function Dashboard({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Welcome Section */}
       <div>
-        <h1 className="mb-1 text-[#312E81] text-2xl font-bold">
-          Welcome back!
-        </h1>
+        <div className="flex items-center gap-1">
+          <img src="logo.webp" width={"35px"} />
+          <h1 className="text-[#312E81] text-2xl font-bold">Welcome back!</h1>
+        </div>
         <p className="text-[#4C4799]">Here's what needs your attention</p>
       </div>
 

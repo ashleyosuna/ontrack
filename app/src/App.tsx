@@ -682,7 +682,12 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" />
+          {/* <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" /> */}
+          <img
+            src="logo.webp"
+            width={"35px"}
+            className="mx-auto mb-4 animate-pulse"
+          />
           <p className="text-[#4338CA]">Loading...</p>
         </div>
       </div>
@@ -739,7 +744,7 @@ export default function App() {
       {/* Main Content */}
       <main
         className="px-4 pb-6 max-w-2xl mx-auto"
-        style={{ paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+        style={{ paddingTop: "calc(var(--safe-area-inset-top) + 5px)" }}
       >
         {currentView === "dashboard" && (
           <Dashboard
