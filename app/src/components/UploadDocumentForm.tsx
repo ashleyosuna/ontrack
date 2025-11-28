@@ -18,6 +18,7 @@ import { ArrowLeft, Bell, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { AddReminderDialog } from "./AddReminderDialog";
 import { FilePreview } from "./FilePreview";
+import { analyzeDataUrlLocally } from "../utils/scanDocuments";
 import * as chrono from "chrono-node";
 
 interface UploadDocumentProps {
@@ -41,22 +42,18 @@ export function UploadDocumentForm({
   const [capturing, setCapturing] = useState(false); // NEW (camera active)
   const videoRef = useRef<HTMLVideoElement | null>(null); // NEW
   const streamRef = useRef<MediaStream | null>(null); // NEW
-  const [name, setName] = useState("");
-  const [rawText, setRawText] = useState("");
-  const [loadingParse, setLoadingParse] = useState(false);
   // XXX change document handler here
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [showAddReminderDialog, setShowAddReminderDialog] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
-  const [attachMode, setAttachMode] = useState<boolean>(false);
-  const [docToTask, setDocToTask] = useState<boolean>(true);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState("");
   const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(null);
+  const [cameraName, setCameraName] = useState("");
   const [cameraDataUrl, setCameraDataUrl] = useState<string | null>(null);
   const activeDataUrl = mode === "upload" ? uploadDataUrl : cameraDataUrl;
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const changeMode = (mode: SetStateAction<"upload" | "camera">) => {
     // if (mode === "upload") setUploadDataUrl(activeDataUrl);
@@ -111,7 +108,7 @@ export function UploadDocumentForm({
     ctx.drawImage(video, 0, 0, w, h);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     setCameraDataUrl(dataUrl);
-    setName(`Photo ${new Date().toLocaleString()}`);
+    setCameraName(`Photo ${new Date().toLocaleString()}`);
     stopCamera();
   };
 
@@ -135,36 +132,57 @@ export function UploadDocumentForm({
     setUploadFile(f);
     setUploadDataUrl(dataUrl);
     // Update name based on file
-    setName(f.name.replace(/\.[a-z0-9]+$/i, ""));
+    setUploadName(f.name.replace(/\.[a-z0-9]+$/i, ""));
     e.currentTarget.value = ""; // allow re-selecting same file later
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    console.log("test");
+    if (e) e.preventDefault();
     if (!activeDataUrl) return;
+    console.log("test2");
 
-    if (docToTask) {
-      if (!title.trim()) return;
+    // Analyze locally on submit
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    console.log("test3");
+    try {
+      console.log("test4");
+      const mime = mode === "upload" ? (uploadFile?.type || undefined) : "image/jpeg";
+      const { suggestion } = await analyzeDataUrlLocally(activeDataUrl, mime);
+
+      const currentTitle = mode === "upload" ? uploadName.trim() : cameraName.trim();
+      const finalTitle =
+        currentTitle ||
+        suggestion.title?.trim() ||
+        (mode === "upload" ? (uploadFile?.name?.replace(/\.[a-z0-9]+$/i, "") || "") : name) ||
+        "Untitled";
+
+      console.log("test5");
+
+      if (!description.trim() && suggestion.description) setDescription(suggestion.description);
+      if (!notes.trim() && suggestion.notes) setNotes(suggestion.notes);
+
       onCreateTask({
-        title: title.trim(),
-        description: description.trim(),
-        date: new Date(),
-        categoryId: "",
-        notes: notes.trim(),
+        title: finalTitle,
+        description: (description || suggestion.description || "").trim(),
+        date: suggestion.dueDateISO ? new Date(suggestion.dueDateISO) : new Date(),
+        categoryId: defaultCategoryId || "",
+        notes: (notes || suggestion.notes || "").trim(),
         attachments: [activeDataUrl],
-        reminders: [],
+        reminders: [], // optionally transform suggestion.reminders
         completed: false,
       });
       onCancel();
-      return;
-    }
 
-    if (attachMode) {
-      if (!selectedTaskId) return;
-      onAttachToTask(selectedTaskId, activeDataUrl);
-      onCancel();
-      return;
-    }
+      console.log("test6");
+
+      } catch (err: any) {
+        setAnalyzeError(err?.message || "Local LLM analysis failed.");
+        // Optional: submit anyway
+      } finally {
+        setAnalyzing(false);
+      }
   };
 
   useEffect(() => {
@@ -358,7 +376,7 @@ export function UploadDocumentForm({
               <FilePreview
                 file={mode === "upload" ? uploadFile || undefined : undefined}
                 dataUrl={mode === "upload" ? uploadDataUrl || undefined : cameraDataUrl || undefined}
-                filename={(mode === "upload" ? uploadFile?.name : undefined) || name}
+                filename={(mode === "upload" ? uploadName : cameraName) || undefined}
                 height={384}
                 className="bg-white/60 space-y-6"
               />
@@ -370,9 +388,11 @@ export function UploadDocumentForm({
               </Label>
               <Input
                 id="name"
-                value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(e.target.value)
+                value={mode === "upload" ? uploadName : cameraName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    if (mode === "upload") setUploadName(e.target.value)
+                    else setCameraName(e.target.value)
+                  }
                 }
                 placeholder="e.g., Lease Agreement 2025"
                 className="h-12"
@@ -410,19 +430,20 @@ export function UploadDocumentForm({
               />
             </div>
 
-            {/* Submit */}
+            {/* Submit XXX please add onclick functionality*/}
             <div className="flex flex-col gap-3 pt-2">
               <Button
                 type="submit"
-                disabled={!name.trim() || !activeDataUrl}
+                disabled={(mode === "camera" && !cameraName.trim()) || (mode === "upload" && !uploadName) || !activeDataUrl}
                 className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
               >
-                {attachMode ? "Attach to Task" : mode === "camera" ? "Save Photo" : "Save Document"}
+                {mode === "camera" ? "Save Photo" : "Save Document"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
+                  handleSubmit();
                   stopCamera();
                   onCancel();
                 }}
