@@ -10,6 +10,8 @@ import { Badge } from './ui/badge';
 import { ArrowLeft, Plus, Trash2, FileText, Edit } from 'lucide-react';
 import { DEFAULT_CATEGORIES } from '../types';
 import { Separator } from './ui/separator';
+import { createGoogleEvent } from '../utils/CreateGoogleEvent';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -253,6 +255,47 @@ export function Settings({
     a.remove();
     URL.revokeObjectURL(url);
   };
+
+  const exportAllTasksToGC = async () => {
+    if(!hasGoogleToken){
+      alert("Please connect to Google Calendar first.");
+      return;
+    }
+    if(!tasks || tasks.length ==0){
+      alert("No tasks to sync.");
+    }
+    const results = await Promise.allSettled(
+      tasks.map(async (t: any) => {
+        const title = t.title ?? t.name ?? "Task";
+        const description = (t.description ?? t.notes ?? "") as string;
+        const start = toDate(t.startDate ?? t.start ?? t.date ?? t.due ?? t.dueDate ?? t.createdAt);
+        const end = toDate(t.endDate ?? t.end ?? null) ?? start;
+        const allDay = t.allDay ?? isAllDayEvent(start);
+        const location = t.location ?? "";
+
+        return createGoogleEvent({
+          title, 
+          description, 
+          date:start, 
+          endDate: end, 
+          allDay,
+          location
+        });
+      })
+    );
+
+    const successes = results.filter((r) => r.status === "fulfilled").length;
+    const failures = results.filter((r) => r.status === "rejected");
+
+    if(failures.length == 0){
+      alert(`Successfully synced ${successes} tasks to Google Calendar`);
+
+    }else{
+      console.error("Some events failed:", failures);
+      alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
+
+    }
+  } ;
 
   //const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
   const GOOGLE_CLIENT_ID = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) || "YOUR_GOOGLE_CLIENT_ID";
@@ -587,7 +630,15 @@ export function Settings({
           </Button>
           </div>
         )}
+      {/* Sync all tasks to Google Calendar */}
+      <Button 
+        variant = "secondary" className="w-full h-12"
+        onClick={exportAllTasksToGC}
+        disabled={!hasGoogleToken || !tasks || tasks.length ===0}
+        >
+          Sync All Tasks to Google Calendar
 
+      </Button>
       </div>
       
     </div>
