@@ -24,6 +24,7 @@ import { storage } from "../utils/storage";
 
 interface UploadDocumentProps {
   tasks: Task[];
+  categories: Category[];
   onCreateTask: (task: Omit<Task, "id" | "createdAt">) => string;
   onSaveAsTask: (taskId: string, attachment: string) => void;
   onCancel: () => void;
@@ -32,6 +33,7 @@ interface UploadDocumentProps {
 }
 
 export function UploadDocumentForm({
+  categories,
   onCreateTask,
   onSaveAsTask,
   onCancel,
@@ -150,7 +152,28 @@ export function UploadDocumentForm({
           : "image/jpeg";
 
       const { suggestion } = await analyzeDataUrlLocally(activeDataUrl, mime);
+      const dueDate =
+      suggestion.dueDateISO
+        ? new Date(suggestion.dueDateISO)
+        : (() => {
+            const d = new Date();
+            d.setDate(d.getDate() + 1);
+            d.setHours(9, 0, 0, 0);
+            return d;
+          })();
 
+      // Pick category: match suggestion.categoryHint else "Personal" else defaultCategoryId else first
+      const categoryMatch = categories.find(
+        c =>
+          suggestion.categoryHint &&
+          c.name.toLowerCase() === suggestion.categoryHint.toLowerCase()
+      )
+        || categories.find(c => c.name.toLowerCase() === "personal")
+        || (defaultCategoryId
+            ? categories.find(c => c.id === defaultCategoryId)
+            : categories[0]);
+
+    const chosenCategoryId = categoryMatch ? categoryMatch.id : (defaultCategoryId || "");
       const currentTitle =
         mode === "upload" ? uploadName.trim() : cameraName.trim();
 
@@ -190,16 +213,35 @@ export function UploadDocumentForm({
         addedAt: new Date(),
       };
 
+      const reminderStrings = Array.isArray(suggestion.reminders) ? suggestion.reminders : [];
+      const reminders: Reminder[] =
+        reminderStrings.length
+          ? reminderStrings.slice(0, 5).map((r, i) => ({
+              id: `rem-${Date.now()}-${i}`,
+              message: r.slice(0, 120),
+              time: new Date(dueDate.getTime() - 60 * 60 * 1000).toISOString(), // 1h before due date
+            }))
+          : [
+              {
+                id: `rem-${Date.now()}-0`,
+                message: "Review task",
+                time: new Date(dueDate.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day before
+              },
+              {
+                id: `rem-${Date.now()}-1`,
+                message: "Due today",
+                time: new Date(dueDate.setHours(8,0,0,0)).toISOString(),
+              },
+            ];
+
       const newTaskID = onCreateTask({
         title: finalTitle,
         description: (description || suggestion.description || "").trim(),
-        date: suggestion.dueDateISO
-          ? new Date(suggestion.dueDateISO)
-          : new Date(),
-        categoryId: defaultCategoryId || "",
+        date: dueDate,
+        categoryId: chosenCategoryId,
         notes: (notes || suggestion.notes || "").trim(),
-        attachments: [attachment], // FIX: pass object, not raw string
-        reminders: [],
+        attachments: [attachment],
+        reminders,
         completed: false,
       });
 

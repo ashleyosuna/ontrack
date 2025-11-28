@@ -68,19 +68,29 @@ async function getGenerator() {
   return generatorPromise;
 }
 
-export async function suggestFromTextLocal(text: string): Promise<LocalSuggestResult> {
+export async function suggestFromTextLocal(text: string, categoryNames?: string[]): Promise<LocalSuggestResult> {
   if (!text.trim()) {
     console.log("[LLM] Empty text, skipping generation.");
     return {};
   }
   const gen = await getGenerator();
+  const catList = (categoryNames && categoryNames.length ? categoryNames : ["Personal"]).join(", ");
 
   const prompt = `
-Extract the following fields from the document and return ONLY compact JSON:
-"title", "description", "dueDateISO" (ISO 8601 or null), "reminders" (string[]), "notes", "categoryHint".
+You are extracting structured task metadata.
+
+Available categories (choose exactly one; return its exact name as "categoryHint"): ${catList}
+
+Return ONLY compact JSON with keys:
+"title", "description", "dueDateISO" (ISO 8601 or null),
+"reminders" (array of short reminder strings),
+"notes", "categoryHint".
+
+If no clear due date, set "dueDateISO" to null (frontend will fallback to tomorrow).
+Prefer concise title (<= 80 chars), description (<= 400 chars).
 
 Document:
-${text.slice(0, 4000)}
+${text.slice(0, 3500)}
 `.trim();
 
   console.log("[LLM] Starting generation. Prompt chars:", prompt.length);
@@ -118,7 +128,6 @@ ${text.slice(0, 4000)}
   return parsed;
 }
 
-// ---------- NEW: data URL helper and UploadDocumentForm compatibility wrapper ----------
 function dataUrlToBlob(dataUrl: string, fallbackMime?: string): Blob {
   if (!dataUrl.startsWith("data:")) {
     // Not a data URL (might be http(s) or blob:), just return empty with type hint.
@@ -142,7 +151,7 @@ function dataUrlToBlob(dataUrl: string, fallbackMime?: string): Blob {
  * Compatibility wrapper for UploadDocumentForm.
  * Takes a DataURL (or http(s)/blob URL), analyzes locally, and returns { suggestion }.
  */
-export async function analyzeDataUrlLocally(dataUrl: string, mime?: string): Promise<{ suggestion: LocalSuggestResult }> {
+export async function analyzeDataUrlLocally(dataUrl: string, mime?: string, categoryNames?: string[]): Promise<{ suggestion: LocalSuggestResult }> {
   let blob: Blob;
   if (dataUrl.startsWith("data:")) {
     blob = dataUrlToBlob(dataUrl, mime);
@@ -150,13 +159,20 @@ export async function analyzeDataUrlLocally(dataUrl: string, mime?: string): Pro
     const res = await fetch(dataUrl);
     blob = await res.blob();
   }
-
   const task = await scanDocument(blob);
+  // task already did model suggestion without categories; re-run with categories if provided and we have raw text
+  if (categoryNames && task.rawText) {
+    try {
+      const enriched = await suggestFromTextLocal(task.rawText, categoryNames);
+      return { suggestion: { ...task, ...enriched } };
+    } catch {
+      return { suggestion: task };
+    }
+  }
   const { rawText, ...suggestion } = task;
   return { suggestion };
 }
 
-// ---------- NEW: OCR and PDF extraction utilities ----------
 let ocrWorkerPromise: Promise<any> | null = null;
 async function getOcrWorker() {
   if (!ocrWorkerPromise) {
