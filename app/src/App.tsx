@@ -743,7 +743,7 @@ export default function App() {
       {/* Main Content */}
       <main
         className="px-4 pb-6 max-w-2xl mx-auto"
-        style={{ paddingTop: "calc(var(--safe-area-inset-top) + 5px)" }}
+        style={{ paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
       >
         {currentView === "dashboard" && (
           <Dashboard
