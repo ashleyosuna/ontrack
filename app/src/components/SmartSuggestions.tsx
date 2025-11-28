@@ -1,13 +1,16 @@
 import { Suggestion } from "../types";
 import Slider from "react-slick";
-import { Button } from "./ui/button";
+import { Button } from "./ui/button"; // (you can remove this if it's unused)
 
 export default function SmartSuggestions({
   suggestions,
   onDismissSuggestion,
 }: {
   suggestions: Suggestion[];
-  onDismissSuggestion: (suggestionId: string) => void;
+  onDismissSuggestion: (
+    suggestionId: string,
+    options?: { temporary?: boolean }
+  ) => void;
 }) {
   const sliderSettings = {
     dots: true,
@@ -37,19 +40,39 @@ export default function SmartSuggestions({
           <Slider {...sliderSettings} className="suggestions-carousel">
             {suggestions.map((suggestion) => (
               <div key={suggestion.id} className="px-1">
-                <div className="bg-white rounded-xl p-3 shadow-sm flex items-center">
-                  <p className="text-sm text-[#312E81] w-[95%]">
+                <div className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between gap-3">
+                  {/* Left: Snooze */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onDismissSuggestion(suggestion.id, { temporary: true })
+                    }
+                    className="flex flex-col items-center text-xs text-green-600"
+                  >
+                    <span className="leading-none text-sm tracking-tight">
+                      Zzz
+                    </span>
+                    <span className="mt-1 text-[10px] text-[#4C4799]">
+                      Snooze
+                    </span>
+                  </button>
+
+                  {/* Middle: message */}
+                  <p className="flex-1 text-sm text-[#312E81]">
                     {suggestion.message}
                   </p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
+
+                  {/* Right: Dismiss */}
+                  <button
+                    type="button"
                     onClick={() => onDismissSuggestion(suggestion.id)}
-                    className="h-8 text-secondary"
+                    className="flex flex-col items-center text-xs text-secondary"
                   >
-                    ✕
-                  </Button>
-                  {/* </div> */}
+                    <span className="leading-none text-sm">✕</span>
+                    <span className="mt-1 text-[10px] text-[#4C4799]">
+                      Dismiss
+                    </span>
+                  </button>
                 </div>
               </div>
             ))}

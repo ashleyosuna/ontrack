@@ -745,6 +745,21 @@ export const generateSuggestions = (
   suggestions.push(...baseline);
 
   // ---- PRIORITIZE ----
-  const sorted = suggestions.sort((a, b) => b.relevance - a.relevance);
+  const sorted = suggestions
+    .filter((s) => !!s.message)
+    .map((s) => ({ ...s, createdAt: now }))
+    .sort((a, b) => {
+      const aIsTask = !!a.relatedTaskId;
+      const bIsTask = !!b.relatedTaskId;
+
+      // Task-based suggestions first
+      if (aIsTask !== bIsTask) {
+        return aIsTask ? -1 : 1;
+      }
+
+      // Then by relevance
+      return b.relevance - a.relevance;
+    });
+
   return sorted;
 };

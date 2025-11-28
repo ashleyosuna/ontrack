@@ -41,7 +41,7 @@ interface DashboardProps {
   onNavigateToAddTask: () => void;
   onNavigateToTaskDetails: (taskId: string) => void;
   onToggleTask: (taskId: string) => void;
-  onDismissSuggestion: (suggestionId: string) => void;
+  onDismissSuggestion: (suggestionId: string, options?: { temporary?: boolean }) => void;
   onSuggestionFeedback: (
     suggestionId: string,
     feedback: "more" | "less"

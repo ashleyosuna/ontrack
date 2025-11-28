@@ -513,12 +513,21 @@ export default function App() {
     storage.saveTasks(updatedTasks);
   };
 
-  const handleDismissSuggestion = (suggestionId: string) => {
+  const handleDismissSuggestion = (
+    suggestionId: string,
+    options?: { temporary?: boolean }
+  ) => {
     const updatedSuggestions = suggestions.map((s) =>
       s.id === suggestionId ? { ...s, dismissed: true } : s
     );
+
+    // Always update in-memory state so the card disappears now - for snooze
     setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
+
+    // Only persist to storage if this is a permanent dismiss
+    if (!options?.temporary) {
+      storage.saveSuggestions(updatedSuggestions);
+    }
   };
 
   const handleSuggestionFeedback = (
