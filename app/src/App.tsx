@@ -206,9 +206,13 @@ export default function App() {
     age?: string;
     gender?: string;
   }) => {
+    const hiddenCategoryNames = DEFAULT_CATEGORIES
+      .map((c) => c.name)
+      .filter((name) => !data.preferredCategories.includes(name));
+
     const profile: UserProfile = {
       preferredCategories: data.preferredCategories,
-      hiddenCategories: [],
+      hiddenCategories: hiddenCategoryNames,
       age: data.age,
       gender: data.gender,
       hasCompletedOnboarding: true,
@@ -217,7 +221,7 @@ export default function App() {
       demoMode: false,
     };
 
-    // Initialize ALL predefined categories (show all by default)
+    // Initialize ALL predefined categories
     const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
       ...cat,
       id: `category-${Date.now()}-${index}`,
@@ -230,21 +234,29 @@ export default function App() {
     toast.success("Welcome to OnTrack! 🎉");
   };
 
+  const DEMO_CATEGORY_NAMES = ["Subscriptions", "Health", "Warranties", "Vehicle"];
+
+  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES
+  .map((c) => c.name)
+  .filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
+
+  // ---------------------------------------------------------------------------
+  // Demo mode from onboarding button
+  // ---------------------------------------------------------------------------
   const handleDemoMode = () => {
-    // Initialize with all categories and demo mode enabled
+    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      ...cat,
+      id: `category-${Date.now()}-${index}`,
+    }));
+
     const profile: UserProfile = {
-      preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-      hiddenCategories: [],
+      preferredCategories: DEMO_CATEGORY_NAMES,
+      hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
       hasCompletedOnboarding: true,
       calendarIntegration: true,
       notificationsEnabled: true,
       demoMode: true,
     };
-
-    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
-      ...cat,
-      id: `category-${Date.now()}-${index}`,
-    }));
 
     const demoTasks = generateDemoTasks(initialCategories);
 
@@ -255,24 +267,25 @@ export default function App() {
     storage.saveCategories(initialCategories);
     storage.saveTasks(demoTasks);
 
-    // Navigate to dashboard
     setCurrentView("dashboard");
-    toast.success("Welcome to Demo Mode! 🎉");
+    toast.success("Welcome to Demo Mode!");
   };
 
+
+  // ---------------------------------------------------------------------------
+  // Demo mode toggle in settings
+  // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
     if (!userProfile) return;
 
     if (enabled) {
-      // Turn ON demo mode - load all categories and demo data
-      const updatedProfile = {
+      const updatedProfile: UserProfile = {
         ...userProfile,
         demoMode: true,
-        preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-        hiddenCategories: [],
+        preferredCategories: DEMO_CATEGORY_NAMES,
+        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
       };
 
-      // Create all categories
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
@@ -287,11 +300,9 @@ export default function App() {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
-      // Navigate to dashboard
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
     } else {
-      // Turn OFF demo mode - clear everything and return to onboarding
       localStorage.clear();
       setUserProfile(null);
       setCategories([]);
@@ -301,6 +312,7 @@ export default function App() {
       toast.success("Demo mode disabled. Starting fresh!");
     }
   };
+
 
   const handleAddTask = (
     taskData: Omit<Task, "id" | "createdAt">,

@@ -273,14 +273,14 @@ export function Settings({
         <div>
           <h3 className="text-[#312E81]">Manage Categories</h3>
           <p className="text-xs text-[#4C4799] mt-1">
-            Add or remove categories as needed
+            Choose which categories you use and add your own
           </p>
         </div>
 
-        {/* Visible Categories */}
+        {/* My Categories */}
         {visibleCategories.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm text-[#312E81]">Visible Categories</h4>
+            <h4 className="text-sm text-[#312E81]">My Categories</h4>
             <p className="text-xs text-[#4C4799]">
               These categories appear on your dashboard
             </p>
@@ -325,12 +325,12 @@ export function Settings({
           <Separator />
         )}
 
-        {/* Hidden Categories */}
+        {/* Add Categories */}
         {hiddenCategories.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm text-[#312E81]">Hidden Categories</h4>
+            <h4 className="text-sm text-[#312E81]">Add Categories</h4>
             <p className="text-xs text-[#4C4799]">
-              Click + to show these on your dashboard
+              Tap + to add these to My Categories
             </p>
             {hiddenCategories.map((category) => (
               <div
@@ -388,7 +388,7 @@ export function Settings({
               </SelectTrigger>
               <SelectContent className="overflow-y-scroll h-[250px] min-w-[100px]">
                 {icons.map((iconName) => (
-                  <SelectItem value={iconName} className="">
+                  <SelectItem key={iconName} value={iconName} className="">
                     <CategoryIcon
                       iconName={iconName}
                       color={"white"}
@@ -544,7 +544,7 @@ export function Settings({
               unfinished tasks in "{categoryToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2">
             <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
               Cancel
             </AlertDialogCancel>
@@ -571,7 +571,7 @@ export function Settings({
               tasks will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2">
             <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
               Cancel
             </AlertDialogCancel>
