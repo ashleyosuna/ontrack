@@ -31,7 +31,7 @@ Our goal is to reduce mental clutter and help people stay organized with a robus
 - Lynn Martinez Santana
 - Michelle Rosenthal
 
-**Contact:** ontrack-uvic@gmail.com
+**Contact:** ontrack.uvic@gmail.com
 
 ## Live Demo
 
