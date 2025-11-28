@@ -11,6 +11,8 @@ import { CategoryIcon } from "./components/CategoryIcon";
 import { TemplateSelectionDialog } from "./components/TemplateSelectionDialog";
 import { TaskCreationModeDialog } from "./components/TaskCreationModeDialog";
 import { TemplateForm } from "./components/TemplateForm";
+import { UploadDocumentForm } from "./components/UploadDocumentForm";
+import { PhotoForm } from "./components/PhotoForm";
 import { Button } from "./components/ui/button";
 import {
   Home,
@@ -20,9 +22,11 @@ import {
   Sparkles,
   CheckCircle,
   Bell,
+  Files,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
+  Document,
   Category,
   Task,
   Suggestion,
@@ -52,12 +56,15 @@ type View = 'welcome'
   | "create-template"
   | "edit-template"
   | "pre-add-task"
-  | "select-template";
+  | "select-template"
+  | "documents"
+  | "add-document-upload"
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>("dashboard");
@@ -97,6 +104,7 @@ export default function App() {
     const savedTasks = storage.getTasks();
     const savedSuggestions = storage.getSuggestions();
     const savedTemplates = storage.getTemplates();
+    const savedDocuments = storage.getDocuments();
 
     // First time user - don't auto-initialize, let them go through onboarding
     // if (!profile) {
@@ -163,6 +171,7 @@ export default function App() {
     setTasks(savedTasks);
     setSuggestions(savedSuggestions);
     setTemplates(savedTemplates);
+    setDocuments(savedDocuments);
     setIsInitialized(true);
   }, []);
 
@@ -593,12 +602,14 @@ export default function App() {
   };
 
   const handleModeSelected = (
-    mode: "quick" | "template" | "create-template"
+    mode: "quick" | "template" | "create-template" | "document-upload"
   ) => {
     setPreviousView(currentView);
     if (mode === "quick") {
       // Go directly to TaskForm (start from scratch)
       setCurrentView("add-task");
+    } else if (mode === "document-upload") {
+      setCurrentView("add-document-upload");
     } else if (mode === "template") {
       // Open template selection dialog
       // setShowTemplateDialog(true);
@@ -669,6 +680,49 @@ export default function App() {
       setSelectedTemplateId(null);
     }
   };
+
+  const handleCreateTaskFromUpload = (taskData: Omit<Task, "id" | "createdAt">): string => {
+    const newID = `task-${Date.now()}`;
+    const newTask: Task = {
+      ...taskData,
+      id: newID,
+      createdAt: new Date(),
+    };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+    toast.success("Task created from document");
+    setSelectedTaskId(newID);
+    setCurrentView("edit-task"); // navigate to edit view
+    return newID;
+  };
+
+  const handleSaveDocumentAsTask = (taskId: string, attachment: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+      toast.error("Task not found");
+      return;
+    }
+    const updatedTask: Task = {
+      ...task,
+      attachments: [
+        ...(task.attachments || []),
+        {
+          id: `att-${Date.now()}`,
+          uri: attachment,
+          fileName: "attachment",
+          addedAt: new Date(),
+        },
+      ],
+    };
+    const updatedTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+    toast.success("Document saved to task");
+    setSelectedTaskId(taskId);
+    setCurrentView("edit-task");
+  };
+
 
   const navigateToEditTemplate = (templateId: string) => {
     setPreviousView(currentView);
@@ -884,6 +938,19 @@ if (currentView === 'onboarding') {
             }
           />
         )}
+        {currentView === "add-document-upload" && (
+          <UploadDocumentForm
+            task={selectedTask}
+            categories={categories}
+            onCreateTask={handleCreateTaskFromUpload}
+            onSaveAsTask={handleSaveDocumentAsTask}
+            onCancel={navigateToDashboard}
+            onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
+            onNavigateToTasks={navigateToEditTask}
+          />
+        )}
+
 
         {currentView === "edit-task" && selectedTask && (
           <TaskForm
@@ -910,7 +977,6 @@ if (currentView === 'onboarding') {
             onDeleteTemplate={handleDeleteTemplate}
           />
         )}
-
         {currentView === "reminders" && (
           <RemindersView
             tasks={tasks}
@@ -1021,7 +1087,6 @@ if (currentView === 'onboarding') {
               <List className="h-6 w-6" />
               <span className="text-xs">Categories</span>
             </button>
-
             <button
               onClick={navigateToReminders}
               className={`flex flex-col items-center justify-center pt-3 transition-colors ${

@@ -20,7 +20,7 @@ export interface Task {
   description: string;
   date: Date;
   categoryId: string;
-  attachments: string[];
+  attachments: DocumentAttachment[];
   completed: boolean;
   completedAt?: Date; // When the task was completed
   notes: string;
@@ -31,6 +31,38 @@ export interface Task {
     completedAt: Date;
     date: Date; // The original due date
   }>;
+}
+
+export interface DocumentAttachment {
+  id: string;
+  uri: string;
+  mimeType?: string;
+  fileName?: string;
+  sizeBytes?: number;
+  previewUri?: string;
+  addedAt: Date;
+}
+
+export interface Document {
+  id: string;
+  title: string;
+  description: string;
+  categoryId?: string;
+  notes?: string;
+  reminders?: Reminder[];
+  attachments: DocumentAttachment[];
+  linkedTaskId?: string;
+  sourceFileName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+/*XXX may remove later*/
+export interface DocumentLink {
+  id: string;
+  documentId: string;
+  taskId: string;
+  linkedAt: Date;
 }
 
 export interface Suggestion {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Task, Category, Reminder } from '../types';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -36,6 +36,7 @@ export function TaskForm({
   const [notes, setNotes] = useState(task?.notes || '');
   const [attachments, setAttachments] = useState<string[]>(task?.attachments || []);
   const [reminders, setReminders] = useState<Reminder[]>(task?.reminders || []);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -48,6 +49,23 @@ export function TaskForm({
       setReminders(task.reminders || []);
     }
   }, [task]);
+
+  const readAsDataUrl = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(f);
+    });
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const dataUrls = await Promise.all(Array.from(files).map(readAsDataUrl));
+    setAttachments((prev) => [...prev, ...dataUrls]);
+    // reset input so selecting the same file again works
+    e.target.value = '';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,9 +87,7 @@ export function TaskForm({
   };
 
   const handleFileUpload = () => {
-    // Simulate file upload
-    const mockFileName = `document_${Date.now()}.pdf`;
-    setAttachments([...attachments, mockFileName]);
+    fileInputRef.current?.click();
   };
 
   const removeAttachment = (index: number) => {
@@ -293,6 +309,14 @@ export function TaskForm({
                   </Button>
                 </div>
               ))}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.png,.jpeg"
+                multiple
+                className="hidden"
+                onChange={onFileChange}
+              />
               <Button
                 type="button"
                 variant="outline"
