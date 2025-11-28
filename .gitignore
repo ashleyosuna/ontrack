@@ -40,3 +40,4 @@ Thumbs.db
 .vite/
 coverage/
 next-env.d.ts
+app/package-lock.json
