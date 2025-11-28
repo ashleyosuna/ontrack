@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, SetStateAction } from "react";
 import { Task, Category, Reminder, Template } from "../types";
-import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 import {
   Select,
@@ -15,27 +13,30 @@ import {
   SelectValue,
 } from "./ui/select";
 import { ArrowLeft, Bell, Plus } from "lucide-react";
-import { format } from "date-fns";
-import { AddReminderDialog } from "./AddReminderDialog";
 import { FilePreview } from "./FilePreview";
 import { analyzeDataUrlLocally } from "../utils/scanDocuments";
 import * as chrono from "chrono-node";
+import { pipeline, env } from "@xenova/transformers";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Camera, Upload, X } from "lucide-react";
+import type { DocumentAttachment } from "../types";
+import { storage } from "../utils/storage";
 
 interface UploadDocumentProps {
   tasks: Task[];
-  onCreateTask: (task: Omit<Task, "id" | "createdAt">) => void;
-  onAttachToTask: (taskId: string, attachment: string) => void;
+  onCreateTask: (task: Omit<Task, "id" | "createdAt">) => string;
+  onSaveAsTask: (taskId: string, attachment: string) => void;
   onCancel: () => void;
-  onChangeToCamera: (mode: "document-camera") => void;
   defaultCategoryId?: string;
+  onNavigateToTasks?: (taskId: string) => void;
 }
 
 export function UploadDocumentForm({
   onCreateTask,
-  onAttachToTask,
+  onSaveAsTask,
   onCancel,
-  onChangeToCamera,
   defaultCategoryId,
+  onNavigateToTasks,
 }: UploadDocumentProps) {
 
   const [mode, setMode] = useState<"upload" | "camera">("upload"); // NEW
@@ -89,7 +90,6 @@ export function UploadDocumentForm({
     if (videoRef.current) {
       try {
         videoRef.current.pause();
-        // @ts-expect-error: srcObject not in lib dom older types
         videoRef.current.srcObject = null;
       } catch {}
     }
@@ -137,52 +137,78 @@ export function UploadDocumentForm({
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    console.log("test");
     if (e) e.preventDefault();
     if (!activeDataUrl) return;
-    console.log("test2");
 
-    // Analyze locally on submit
     setAnalyzing(true);
     setAnalyzeError(null);
-    console.log("test3");
+
     try {
-      console.log("test4");
-      const mime = mode === "upload" ? (uploadFile?.type || undefined) : "image/jpeg";
+      const mime =
+        mode === "upload"
+          ? (uploadFile?.type || undefined)
+          : "image/jpeg";
+
       const { suggestion } = await analyzeDataUrlLocally(activeDataUrl, mime);
 
-      const currentTitle = mode === "upload" ? uploadName.trim() : cameraName.trim();
+      const currentTitle =
+        mode === "upload" ? uploadName.trim() : cameraName.trim();
+
       const finalTitle =
         currentTitle ||
         suggestion.title?.trim() ||
-        (mode === "upload" ? (uploadFile?.name?.replace(/\.[a-z0-9]+$/i, "") || "") : name) ||
+        (mode === "upload"
+          ? (uploadFile?.name?.replace(/\.[a-z0-9]+$/i, "") || "")
+          : cameraName) ||
         "Untitled";
 
-      console.log("test5");
-
-      if (!description.trim() && suggestion.description) setDescription(suggestion.description);
+      if (!description.trim() && suggestion.description)
+        setDescription(suggestion.description);
       if (!notes.trim() && suggestion.notes) setNotes(suggestion.notes);
 
-      onCreateTask({
+      // Persist attachment
+      let persistedPath: string;
+      try {
+        persistedPath = await storage.persistAttachment(activeDataUrl);
+      } catch {
+        // Fallback: keep raw data URL if persistence fails
+        persistedPath = activeDataUrl;
+      }
+
+      // Derive filename + extension
+      const ext =
+        mode === "upload"
+          ? (uploadFile?.name.match(/\.[a-z0-9]+$/i)?.[0] || "")
+          : ".jpg";
+      const attachment: DocumentAttachment = {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        uri: persistedPath,
+        mimeType: mime,
+        fileName: finalTitle + ext,
+        sizeBytes: mode === "upload" ? uploadFile?.size : undefined,
+        previewUri: mime?.startsWith("image/") ? activeDataUrl : undefined,
+        addedAt: new Date(),
+      };
+
+      const newTaskID = onCreateTask({
         title: finalTitle,
         description: (description || suggestion.description || "").trim(),
-        date: suggestion.dueDateISO ? new Date(suggestion.dueDateISO) : new Date(),
+        date: suggestion.dueDateISO
+          ? new Date(suggestion.dueDateISO)
+          : new Date(),
         categoryId: defaultCategoryId || "",
         notes: (notes || suggestion.notes || "").trim(),
-        attachments: [activeDataUrl],
-        reminders: [], // optionally transform suggestion.reminders
+        attachments: [attachment], // FIX: pass object, not raw string
+        reminders: [],
         completed: false,
       });
-      onCancel();
 
-      console.log("test6");
-
-      } catch (err: any) {
-        setAnalyzeError(err?.message || "Local LLM analysis failed.");
-        // Optional: submit anyway
-      } finally {
-        setAnalyzing(false);
-      }
+      onNavigateToTasks && onNavigateToTasks(newTaskID);
+    } catch (err: any) {
+      setAnalyzeError(err?.message || "Local analysis failed.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   useEffect(() => {
@@ -456,5 +482,227 @@ export function UploadDocumentForm({
         )}
       </Card>
     </div>
+  );
+}
+
+interface MiniUploadCardProps {
+  title?: string;
+  accept?: string;
+  onAdd: (attachment: DocumentAttachment) => void;
+}
+
+export function MiniUploadCard({
+  title = "Attach a document",
+  accept = ".txt,.md,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*",
+  onAdd,
+}: MiniUploadCardProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Camera state
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const readAsDataURL = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(f);
+    });
+
+  async function saveDataUrlAsAttachment(
+    dataUrl: string,
+    opts?: { fileName?: string; mimeType?: string; sizeBytes?: number }
+  ) {
+    const savedPath = await storage.persistAttachment(dataUrl);
+    const att: DocumentAttachment = {
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      uri: savedPath,
+      mimeType: opts?.mimeType || (dataUrl.split(";")[0].replace("data:", "") || undefined),
+      fileName: opts?.fileName || "attachment",
+      sizeBytes: opts?.sizeBytes,
+      previewUri: (opts?.mimeType || dataUrl).startsWith("image/") ? dataUrl : undefined,
+      addedAt: new Date(),
+    };
+    onAdd(att);
+  }
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const file = el.files?.[0];
+    if (!file) return;
+    setErr(null);
+    setBusy(true);
+    try {
+      const dataUrl = await readAsDataURL(file);
+      await saveDataUrlAsAttachment(dataUrl, {
+        fileName: file.name,
+        mimeType: file.type || undefined,
+        sizeBytes: file.size,
+      });
+    } catch (e) {
+      console.error(e);
+      setErr("Failed to attach file. Try again.");
+    } finally {
+      setBusy(false);
+      el.value = "";
+    }
+  };
+
+  async function startCamera() {
+    try {
+      setErr(null);
+      setCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        // @ts-ignore
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (e) {
+      console.error(e);
+      setErr("Unable to access camera.");
+      setCapturing(false);
+    }
+  }
+
+  function stopCamera() {
+    setCapturing(false);
+    const s = streamRef.current;
+    if (s) {
+      s.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      // @ts-ignore
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  function timestampName(prefix = "photo", ext = "jpg") {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${prefix}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`;
+  }
+
+  async function takePhoto() {
+    const video = videoRef.current;
+    if (!video) return;
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    setBusy(true);
+    try {
+      await saveDataUrlAsAttachment(dataUrl, {
+        fileName: timestampName("photo", "jpg"),
+        mimeType: "image/jpeg",
+      });
+      setCameraOpen(false);
+    } catch (e) {
+      console.error(e);
+      setErr("Failed to capture photo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Cleanup on dialog close
+  useEffect(() => {
+    if (cameraOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraOpen]);
+
+  return (
+    <>
+      <Card className="p-3 border-dashed border-2 border-gray-300 bg-white/70">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <Label className="text-sm text-[#312E81]">{title}</Label>
+            {err && <span className="text-xs text-red-600 mt-1">{err}</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={accept}
+              className="hidden"
+              onChange={onPick}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+              title="Upload from files"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {busy ? "Uploading..." : "Upload"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10"
+              disabled={busy}
+              onClick={() => setCameraOpen(true)}
+              title="Use camera"
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Camera
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Take a photo</DialogTitle>
+          </DialogHeader>
+          <div className="relative bg-black rounded overflow-hidden">
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="w-full h-auto"
+              style={{ background: "#000" }}
+            />
+            {!capturing && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-white/80 text-sm">Starting camera…</span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-3">
+            <Button type="button" variant="outline" onClick={() => setCameraOpen(false)}>
+              <X className="h-4 w-4 mr-1" />
+              Close
+            </Button>
+            <Button type="button" onClick={takePhoto} disabled={!capturing || busy}>
+              {busy ? "Saving…" : "Capture"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

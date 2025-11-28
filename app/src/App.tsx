@@ -649,6 +649,49 @@ export default function App() {
     }
   };
 
+  const handleCreateTaskFromUpload = (taskData: Omit<Task, "id" | "createdAt">): string => {
+    const newID = `task-${Date.now()}`;
+    const newTask: Task = {
+      ...taskData,
+      id: newID,
+      createdAt: new Date(),
+    };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+    toast.success("Task created from document");
+    setSelectedTaskId(newID);
+    setCurrentView("edit-task"); // navigate to edit view
+    return newID;
+  };
+
+  const handleSaveDocumentAsTask = (taskId: string, attachment: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+      toast.error("Task not found");
+      return;
+    }
+    const updatedTask: Task = {
+      ...task,
+      attachments: [
+        ...(task.attachments || []),
+        {
+          id: `att-${Date.now()}`,
+          uri: attachment,
+          fileName: "attachment",
+          addedAt: new Date(),
+        },
+      ],
+    };
+    const updatedTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+    toast.success("Document saved to task");
+    setSelectedTaskId(taskId);
+    setCurrentView("edit-task");
+  };
+
+
   const navigateToEditTemplate = (templateId: string) => {
     setPreviousView(currentView);
     setSelectedTemplateId(templateId);
@@ -882,17 +925,19 @@ export default function App() {
             }
           />
         )}
-
         {currentView === "add-document-upload" && (
           <UploadDocumentForm
             task={selectedTask}
             categories={categories}
-            onSave={handleEditTask}
+            onCreateTask={handleCreateTaskFromUpload}
+            onSaveAsTask={handleSaveDocumentAsTask}
             onCancel={navigateToDashboard}
             onDelete={handleDeleteTask}
             onChangeToCamera={handleModeSelected}
+            onNavigateToTasks={navigateToEditTask}
           />
         )}
+
 
         {currentView === "edit-task" && selectedTask && (
           <TaskForm

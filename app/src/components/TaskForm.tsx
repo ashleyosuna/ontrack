@@ -30,6 +30,7 @@ import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { storage } from "../utils/storage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { MiniUploadCard } from "./UploadDocumentForm";
 
 interface TaskFormProps {
   task?: Task;
@@ -646,15 +647,15 @@ export function TaskForm({
                 className="hidden"
                 onChange={onFileChange}
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-12"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
+              <MiniUploadCard
+                title="Add document or photo"
+                onAdd={(att) =>
+                  setFormTask((prev) => ({
+                    ...prev,
+                    attachments: [...(prev.attachments || []), att],
+                  }))
+                }
+              />
               <p className="text-xs text-muted-foreground text-center">
                 Tap a file name to preview
               </p>
