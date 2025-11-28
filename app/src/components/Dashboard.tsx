@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Task, Category, Suggestion } from "../types";
 import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
@@ -18,6 +18,8 @@ import {
   Circle,
   AlertCircle,
   List,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import {
   formatDistanceToNow,
@@ -29,6 +31,7 @@ import {
 } from "date-fns";
 import { CalendarView } from "./CalendarView";
 import { TaskDetailDialog } from "./TaskDetailDialog";
+import SmartSuggestions from "./SmartSuggestions";
 
 interface DashboardProps {
   tasks: Task[];
@@ -38,7 +41,7 @@ interface DashboardProps {
   onNavigateToAddTask: () => void;
   onNavigateToTaskDetails: (taskId: string) => void;
   onToggleTask: (taskId: string) => void;
-  onDismissSuggestion: (suggestionId: string) => void;
+  onDismissSuggestion: (suggestionId: string, options?: { temporary?: boolean }) => void;
   onSuggestionFeedback: (
     suggestionId: string,
     feedback: "more" | "less"
@@ -61,6 +64,7 @@ export function Dashboard({
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
 
   const handleTaskClick = (task: Task) => {
     onNavigateToTaskDetails(task.id);
@@ -77,8 +81,29 @@ export function Dashboard({
     )
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const activeSuggestions = suggestions.filter((s) => !s.dismissed).slice(0, 3);
+  const activeSuggestions = suggestions.filter((s) => !s.dismissed).slice(0, 6);
+  useEffect(() => {
+    if (
+      currentSuggestionIndex >= activeSuggestions.length &&
+      activeSuggestions.length > 0
+    ) {
+      setCurrentSuggestionIndex(0);
+    }
+  }, [activeSuggestions.length, currentSuggestionIndex]);
 
+  const handleNextSuggestion = () => {
+    if (activeSuggestions.length === 0) return;
+    setCurrentSuggestionIndex(
+      (prev) => (prev + 1) % activeSuggestions.length
+    );
+  };
+
+  const handlePrevSuggestion = () => {
+    if (activeSuggestions.length === 0) return;
+    setCurrentSuggestionIndex(
+      (prev) => (prev - 1 + activeSuggestions.length) % activeSuggestions.length
+    );
+  };
   const getCategoryById = (categoryId: string) => {
     return categories.find((c) => c.id === categoryId);
   };
@@ -90,17 +115,22 @@ export function Dashboard({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Welcome Section */}
       <div>
-        <h1 className="mb-1 text-[#312E81] text-2xl font-bold">
-          Welcome back!
-        </h1>
+        <div className="flex items-center gap-1">
+          <img src="logo.webp" width={"35px"} />
+          <h1 className="text-[#312E81] text-2xl font-bold">Welcome back!</h1>
+        </div>
         <p className="text-[#4C4799]">Here's what needs your attention</p>
       </div>
 
       {/* Assistant Suggestions */}
-      {activeSuggestions.length > 0 && (
+      <SmartSuggestions
+        suggestions={activeSuggestions}
+        onDismissSuggestion={onDismissSuggestion}
+      />
+      {/* {activeSuggestions.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-4 border border-blue-200">
           <div className="flex items-start gap-3 mb-3">
             <div className="text-2xl">💡</div>
@@ -110,46 +140,71 @@ export function Dashboard({
             </div>
           </div>
 
-          <div className="space-y-3">
-            {activeSuggestions.map((suggestion) => (
-              <div
-                key={suggestion.id}
-                className="bg-white rounded-xl p-3 shadow-sm"
-              >
-                <p className="text-sm mb-3 text-[#312E81]">
-                  {suggestion.message}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onSuggestionFeedback(suggestion.id, "more")}
-                    className="flex-1 text-xs h-8 text-[#312E81]"
-                  >
-                    👍 More
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onSuggestionFeedback(suggestion.id, "less")}
-                    className="flex-1 text-xs h-8 text-[#312E81]"
-                  >
-                    👎 Less
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onDismissSuggestion(suggestion.id)}
-                    className="text-xs h-8"
-                  >
-                    ✕
-                  </Button>
+          {activeSuggestions[currentSuggestionIndex] && (
+            <div className="flex items-center gap-3">
+              {activeSuggestions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevSuggestion}
+                  className="p-2 rounded-full hover:bg-white/70 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5 text-[#312E81]" />
+                </button>
+              )}
+
+              <div className="flex-1">
+                <div className="bg-white rounded-xl p-3 shadow-sm">
+                  <p className="text-sm mb-3 text-[#312E81]">
+                    {activeSuggestions[currentSuggestionIndex].message}
+                  </p>
+                  <div className="flex w-full justify-end gap-2 mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 border-[#312E81] text-[#312E81] hover:bg-indigo-50"
+                      onClick={() => {
+                        // Temporary dismiss until next app open
+                        onDismissSuggestion(activeSuggestions[currentSuggestionIndex].id, {
+                          temporary: true,
+                        });
+                      }}
+                    >
+                      Remind me later
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 border-red-400 hover:bg-red-50"
+                      onClick={() =>
+                        onDismissSuggestion(activeSuggestions[currentSuggestionIndex].id)
+                      }
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                  {activeSuggestions.length > 1 && (
+                    <div className="text-[10px] text-right text-[#4C4799]">
+                      {currentSuggestionIndex + 1} / {activeSuggestions.length}
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+
+              {activeSuggestions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextSuggestion}
+                  className="p-2 rounded-full hover:bg-white/70 transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5 text-[#312E81]" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      )} */}
+
 
       {/* Overdue Tasks Section */}
       {overdueTasks.length > 0 && (
