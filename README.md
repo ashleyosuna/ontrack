@@ -29,7 +29,7 @@ Our goal is to reduce mental clutter and help people stay organized with a robus
 - Lynn Martinez Santana 
 - Michelle Rosenthal 
 
-**Contact:** ontrack@gmail.com
+**Contact:** ontrack-uvic@gmail.com
 
 ## Live Demo
 
@@ -41,7 +41,8 @@ Note that in Milestones 1 and 2 we were developing Gifted, which we have since p
 Milestone Presentations
 - [Milestone 1 Presentation](https://drive.google.com/file/d/1OaasktQ2_4uYJifcVagTlFveQaarOv0h/view?usp=drive_link)
 - [Milestone 2 Presentation](https://www.canva.com/design/DAG1CjI24jA/P29pxHS_YF3AtLeHP4RXhg/edit)
-- Milestone 3 Presentation Coming Soon!
+- [Milestone 3 Presentation](https://www.canva.com/design/DAG3SwwkG0U/iWb6eNhChsuCBgortrWt4g/edit)
+- [Milestone 4 Presentation](https://www.canva.com/design/DAG57mfXigg/Vx46mrlXYq-jthPbYNsF_w/edit)
 
 Check the wiki folder for documentation
 

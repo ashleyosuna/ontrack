@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import WelcomePage from './components/WelcomeScreen';
+import LoadingPage from './components/LoadingScreen';
 import { Onboarding } from "./components/Onboarding";
 import { Dashboard } from "./components/Dashboard";
 import { CategoryView } from "./components/CategoryView";
@@ -35,8 +37,11 @@ import {
 } from "./utils/assistant";
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
+import CategoryTab from "./components/CategoryTab";
 
-type View =
+type View = 'welcome' 
+  | 'onboarding' 
+  | 'loading'
   | "dashboard"
   | "categories"
   | "category"
@@ -94,10 +99,16 @@ export default function App() {
     const savedTemplates = storage.getTemplates();
 
     // First time user - don't auto-initialize, let them go through onboarding
-    if (!profile) {
+    // if (!profile) {
+    //   setIsInitialized(true);
+    //   return;
+    // }
+    if (!profile || profile) {
+      setCurrentView('welcome');
       setIsInitialized(true);
       return;
     }
+
 
     // Migrate old profiles
     let migratedProfile = { ...profile };
@@ -205,9 +216,13 @@ export default function App() {
     age?: string;
     gender?: string;
   }) => {
+    const hiddenCategoryNames = DEFAULT_CATEGORIES
+      .map((c) => c.name)
+      .filter((name) => !data.preferredCategories.includes(name));
+
     const profile: UserProfile = {
       preferredCategories: data.preferredCategories,
-      hiddenCategories: [],
+      hiddenCategories: hiddenCategoryNames,
       age: data.age,
       gender: data.gender,
       hasCompletedOnboarding: true,
@@ -216,7 +231,7 @@ export default function App() {
       demoMode: false,
     };
 
-    // Initialize ALL predefined categories (show all by default)
+    // Initialize ALL predefined categories
     const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
       ...cat,
       id: `category-${Date.now()}-${index}`,
@@ -229,21 +244,29 @@ export default function App() {
     toast.success("Welcome to OnTrack! 🎉");
   };
 
+  const DEMO_CATEGORY_NAMES = ["Subscriptions", "Health", "Warranties", "Vehicle"];
+
+  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES
+  .map((c) => c.name)
+  .filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
+
+  // ---------------------------------------------------------------------------
+  // Demo mode from onboarding button
+  // ---------------------------------------------------------------------------
   const handleDemoMode = () => {
-    // Initialize with all categories and demo mode enabled
+    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      ...cat,
+      id: `category-${Date.now()}-${index}`,
+    }));
+
     const profile: UserProfile = {
-      preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-      hiddenCategories: [],
+      preferredCategories: DEMO_CATEGORY_NAMES,
+      hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
       hasCompletedOnboarding: true,
       calendarIntegration: true,
       notificationsEnabled: true,
       demoMode: true,
     };
-
-    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
-      ...cat,
-      id: `category-${Date.now()}-${index}`,
-    }));
 
     const demoTasks = generateDemoTasks(initialCategories);
 
@@ -254,24 +277,25 @@ export default function App() {
     storage.saveCategories(initialCategories);
     storage.saveTasks(demoTasks);
 
-    // Navigate to dashboard
     setCurrentView("dashboard");
-    toast.success("Welcome to Demo Mode! 🎉");
+    toast.success("Welcome to Demo Mode!");
   };
 
+
+  // ---------------------------------------------------------------------------
+  // Demo mode toggle in settings
+  // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
     if (!userProfile) return;
 
     if (enabled) {
-      // Turn ON demo mode - load all categories and demo data
-      const updatedProfile = {
+      const updatedProfile: UserProfile = {
         ...userProfile,
         demoMode: true,
-        preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-        hiddenCategories: [],
+        preferredCategories: DEMO_CATEGORY_NAMES,
+        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
       };
 
-      // Create all categories
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
@@ -286,11 +310,9 @@ export default function App() {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
-      // Navigate to dashboard
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
     } else {
-      // Turn OFF demo mode - clear everything and return to onboarding
       localStorage.clear();
       setUserProfile(null);
       setCategories([]);
@@ -300,6 +322,7 @@ export default function App() {
       toast.success("Demo mode disabled. Starting fresh!");
     }
   };
+
 
   const handleAddTask = (
     taskData: Omit<Task, "id" | "createdAt">,
@@ -490,12 +513,21 @@ export default function App() {
     storage.saveTasks(updatedTasks);
   };
 
-  const handleDismissSuggestion = (suggestionId: string) => {
+  const handleDismissSuggestion = (
+    suggestionId: string,
+    options?: { temporary?: boolean }
+  ) => {
     const updatedSuggestions = suggestions.map((s) =>
       s.id === suggestionId ? { ...s, dismissed: true } : s
     );
+
+    // Always update in-memory state so the card disappears now - for snooze
     setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
+
+    // Only persist to storage if this is a permanent dismiss
+    if (!options?.temporary) {
+      storage.saveSuggestions(updatedSuggestions);
+    }
   };
 
   const handleSuggestionFeedback = (
@@ -682,7 +714,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" />
+          <img
+            src="logo.webp"
+            width={"35px"}
+            className="mx-auto mb-4 animate-pulse"
+          />
           <p className="text-[#4338CA]">Loading...</p>
         </div>
       </div>
@@ -697,15 +733,40 @@ export default function App() {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
-  // Show onboarding if not completed
-  if (!userProfile?.hasCompletedOnboarding) {
-    return (
-      <Onboarding
-        onComplete={handleOnboardingComplete}
-        onDemoMode={handleDemoMode}
-      />
-    );
-  }
+  // // Show onboarding if not completed
+  // if (!userProfile?.hasCompletedOnboarding) {
+  //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
+  // }
+  // --- Welcome Screen ---
+if (currentView === 'welcome') {
+  return (
+    <WelcomePage
+      onGetStarted={() => setCurrentView('onboarding')}
+      onDemoMode={handleDemoMode}
+    />
+  );
+}
+
+if (currentView === 'loading') {
+  return (
+    <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+  )
+}
+
+// --- Onboarding Screen ---
+if (currentView === 'onboarding') {
+  return (
+    <Onboarding
+      onComplete={(data) => {
+        handleOnboardingComplete(data);
+        // setCurrentView('dashboard'); // go to dashboard after onboarding
+        setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
+      }}
+      onDemoMode={handleDemoMode}
+    />
+  );
+}
+
 
   // Check if we're on a main view (for bottom nav)
   // const isMainView = [
@@ -719,25 +780,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        style={{ top: "calc(var(--safe-area-inset-top)" }}
+      />
 
       {/* Mobile Header */}
-      <header
-        className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm"
+      {/* <header
+        className="sticky top-0 z-50 bg-white border-b shadow-sm"
         style={{ paddingTop: "var(--safe-area-inset-top)" }}
       >
         <div className="px-4 pb-4">
           <div className="flex items-center justify-center">
-            <h2 className="text-[#F8FAFC] text-3xl relative">
+            <h2 className="text-primary text-3xl relative">
               <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
               OnTrack
             </h2>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
-      <main className="px-4 py-6 max-w-2xl mx-auto">
+      <main
+        className="px-4 max-w-2xl mx-auto"
+        style={{ paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)", paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+      >
         {currentView === "dashboard" && (
           <Dashboard
             tasks={tasks}
@@ -754,68 +821,14 @@ export default function App() {
         )}
 
         {currentView === "categories" && userProfile && (
-          <div className="space-y-4">
-            <h1 className="text-[#312E81] text-2xl font-bold">Categories</h1>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Completed Tasks Category */}
-              <div
-                className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm border-t-4 border-green-500"
-                onClick={() => {
-                  setSelectedCategoryId("completed");
-                  setCurrentView("category");
-                }}
-              >
-                <div className="text-center space-y-1.5">
-                  <div className="mb-1 flex justify-center">
-                    <CheckCircle
-                      style={{ width: "48px", height: "48px" }}
-                      className="text-green-500"
-                    />
-                  </div>
-                  <h4 className="text-sm text-[#312E81]">Completed</h4>
-                  <p className="text-xs text-[#4C4799]">
-                    {tasks.filter((t) => t.completed).length} tasks
-                  </p>
-                </div>
-              </div>
-
-              {categories
-                .filter(
-                  (category) =>
-                    !userProfile.hiddenCategories.includes(category.name)
-                )
-                .map((category) => {
-                  const categoryTaskCount = tasks.filter(
-                    (t) => t.categoryId === category.id && !t.completed
-                  ).length;
-                  return (
-                    <div
-                      key={category.id}
-                      className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm"
-                      onClick={() => navigateToCategory(category.id)}
-                      style={{ borderTop: `4px solid ${category.color}` }}
-                    >
-                      <div className="text-center space-y-1.5">
-                        <div className="mb-1 flex justify-center">
-                          <CategoryIcon
-                            iconName={category.icon}
-                            size={48}
-                            color={category.color}
-                          />
-                        </div>
-                        <h4 className="text-sm text-[#312E81]">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-[#4C4799]">
-                          {categoryTaskCount}{" "}
-                          {categoryTaskCount === 1 ? "task" : "tasks"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+          <CategoryTab
+            userProfile={userProfile}
+            tasks={tasks}
+            categories={categories}
+            setSelectedCategoryId={setSelectedCategoryId}
+            setCurrentView={setCurrentView}
+            navigateToCategory={navigateToCategory}
+          />
         )}
 
         {currentView === "category" && selectedCategoryId === "completed" && (
@@ -949,7 +962,40 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Floating Action Button */}
+      {(currentView === "dashboard" || currentView === "categories") && (
+        <button
+          onClick={() => navigateToAddTask()}
+          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">New Task</span>
+        </button>
+      )}
+
+      {/* Task Creation Mode Dialog */}
+      {/* {currentView === "pre-add-task" && (
+        <TaskCreationModeDialog
+          open={showModeDialog}
+          onOpenChange={setShowModeDialog}
+          onSelectMode={handleModeSelected}
+          onCancel={navigateToDashboard}
+        />
+      )} */}
+
+      {/* Template Selection Dialog
+      {currentView === "select-template" && (
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          categories={categories}
+          customTemplates={templates}
+          onSelectTemplate={handleTemplateSelected}
+          onDeleteTemplate={handleDeleteTemplate}
+        />
+      )} */}
+
+      {/* bottom navigation */}
       {isMainView && (
         <nav
           className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
@@ -998,39 +1044,6 @@ export default function App() {
           </div>
         </nav>
       )}
-
-      {/* Floating Action Button */}
-      {(currentView === "dashboard" || currentView === "categories") && (
-        <button
-          onClick={() => navigateToAddTask()}
-          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-sm">New Task</span>
-        </button>
-      )}
-
-      {/* Task Creation Mode Dialog */}
-      {/* {currentView === "pre-add-task" && (
-        <TaskCreationModeDialog
-          open={showModeDialog}
-          onOpenChange={setShowModeDialog}
-          onSelectMode={handleModeSelected}
-          onCancel={navigateToDashboard}
-        />
-      )} */}
-
-      {/* Template Selection Dialog
-      {currentView === "select-template" && (
-        <TemplateSelectionDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          categories={categories}
-          customTemplates={templates}
-          onSelectTemplate={handleTemplateSelected}
-          onDeleteTemplate={handleDeleteTemplate}
-        />
-      )} */}
     </div>
   );
 }
