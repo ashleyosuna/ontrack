@@ -1,15 +1,22 @@
-import { useState } from 'react';
-import { Category, UserProfile, Template } from '../types';
-import { CategoryIcon } from './CategoryIcon';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { Switch } from './ui/switch';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { ArrowLeft, Plus, Trash2, FileText, Edit } from 'lucide-react';
-import { DEFAULT_CATEGORIES } from '../types';
-import { Separator } from './ui/separator';
+import { useState } from "react";
+import { Category, UserProfile, Template } from "../types";
+// import { CategoryIcon } from "./CategoryIcon";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { ArrowLeft, Plus, Trash2, FileText, Edit } from "lucide-react";
+import { DEFAULT_CATEGORIES } from "../types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Separator } from "./ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,14 +26,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './ui/alert-dialog';
+} from "./ui/alert-dialog";
+import { CategoryIcon } from "./CategoryIcon";
+// import Icon from "./Icons";
+// import { getIconComponent } from "./CategoryIcon";
 
 interface SettingsProps {
   categories: Category[];
   userProfile: UserProfile;
   onBack: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
-  onAddCategory: (category: Omit<Category, 'id'>) => void;
+  onAddCategory: (category: Omit<Category, "id">) => void;
   onDeleteCategory: (categoryId: string) => void;
   tasks: { id: string; categoryId: string; completed: boolean }[];
   onToggleDemoMode: (enabled: boolean) => void;
@@ -48,35 +58,62 @@ export function Settings({
   onEditTemplate,
   onDeleteTemplate,
 }: SettingsProps) {
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryIcon, setNewCategoryIcon] = useState('');
-  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
+  const icons = [
+    "Home",
+    "Heart",
+    "Star",
+    "Car",
+    "Plane",
+    "Shield",
+    "Calendar",
+    "ShoppingBag",
+    "Briefcase",
+    "Book",
+    "Dumbbell",
+    "Music",
+    "Camera",
+    "Coffee",
+    "Gift",
+    "Lightbulb",
+    "Users",
+    "Wrench",
+    "Package",
+  ];
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("");
+  const [categoryToDelete, setCategoryToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [showDemoModeDialog, setShowDemoModeDialog] = useState(false);
 
   const customCategories = categories.filter((c) => c.isCustom);
   const predefinedCategories = categories.filter((c) => !c.isCustom);
 
   // Split categories into visible and hidden
-  const visibleCategories = [...predefinedCategories, ...customCategories].filter(
-    (c) => !userProfile.hiddenCategories.includes(c.name)
-  );
-  
-  const hiddenCategories = [...predefinedCategories, ...customCategories].filter(
-    (c) => userProfile.hiddenCategories.includes(c.name)
-  );
+  const visibleCategories = [
+    ...predefinedCategories,
+    ...customCategories,
+  ].filter((c) => !userProfile.hiddenCategories.includes(c.name));
+
+  const hiddenCategories = [
+    ...predefinedCategories,
+    ...customCategories,
+  ].filter((c) => userProfile.hiddenCategories.includes(c.name));
 
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
 
     onAddCategory({
       name: newCategoryName.trim(),
-      icon: newCategoryIcon || 'Star',
-      color: '#3B82F6',
+      icon: newCategoryIcon || "Star",
+      color: "#3B82F6",
       isCustom: true,
     });
 
-    setNewCategoryName('');
-    setNewCategoryIcon('');
+    setNewCategoryName("");
+    setNewCategoryIcon("");
   };
 
   const handleHideCategory = (categoryName: string) => {
@@ -100,7 +137,10 @@ export function Settings({
     });
   };
 
-  const handleDeleteCustomCategory = (categoryId: string, categoryName: string) => {
+  const handleDeleteCustomCategory = (
+    categoryId: string,
+    categoryName: string
+  ) => {
     // Check if there are tasks associated with this category
     const categoryTasks = tasks.filter((t) => t.categoryId === categoryId);
     const hasUnfinishedTasks = categoryTasks.some((t) => !t.completed);
@@ -118,7 +158,7 @@ export function Settings({
     if (!categoryToDelete) return;
 
     const category = categories.find((c) => c.id === categoryToDelete.id);
-    
+
     if (category && !category.isCustom) {
       // For predefined categories, just hide them
       onUpdateProfile({
@@ -137,7 +177,9 @@ export function Settings({
     // Remove from hidden categories
     onUpdateProfile({
       ...userProfile,
-      hiddenCategories: userProfile.hiddenCategories.filter((name) => name !== categoryName),
+      hiddenCategories: userProfile.hiddenCategories.filter(
+        (name) => name !== categoryName
+      ),
     });
   };
 
@@ -156,7 +198,7 @@ export function Settings({
     onToggleDemoMode(true);
   };
 
-  const customTemplates = templates.filter(t => !t.isPreset);
+  const customTemplates = templates.filter((t) => !t.isPreset);
 
   return (
     <div className="space-y-5">
@@ -194,9 +236,7 @@ export function Settings({
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label className="text-[#312E81]">Notifications</Label>
-              <p className="text-xs text-[#4C4799]">
-                Get reminders and tips
-              </p>
+              <p className="text-xs text-[#4C4799]">Get reminders and tips</p>
             </div>
             <Switch
               checked={userProfile.notificationsEnabled}
@@ -236,7 +276,7 @@ export function Settings({
             Add or remove categories as needed
           </p>
         </div>
-        
+
         {/* Visible Categories */}
         {visibleCategories.length > 0 && (
           <div className="space-y-2">
@@ -249,19 +289,28 @@ export function Settings({
                 key={category.id}
                 className="flex items-center gap-3 p-3 rounded-xl border"
               >
-                <CategoryIcon iconName={category.icon} size={24} color={category.color} />
+                <CategoryIcon
+                  iconName={category.icon}
+                  size={24}
+                  color={category.color}
+                />
                 <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm text-[#312E81]">{category.name}</span>
+                  <span className="text-sm text-[#312E81]">
+                    {category.name}
+                  </span>
                   {category.isCustom && (
-                    <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      Custom
+                    </Badge>
                   )}
                 </div>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => category.isCustom 
-                    ? handleDeleteCustomCategory(category.id, category.name)
-                    : handleHideCategory(category.name)
+                  onClick={() =>
+                    category.isCustom
+                      ? handleDeleteCustomCategory(category.id, category.name)
+                      : handleHideCategory(category.name)
                   }
                   className="text-[#4C4799] hover:text-destructive"
                 >
@@ -272,7 +321,9 @@ export function Settings({
           </div>
         )}
 
-        {visibleCategories.length > 0 && hiddenCategories.length > 0 && <Separator />}
+        {visibleCategories.length > 0 && hiddenCategories.length > 0 && (
+          <Separator />
+        )}
 
         {/* Hidden Categories */}
         {hiddenCategories.length > 0 && (
@@ -286,11 +337,19 @@ export function Settings({
                 key={category.id}
                 className="flex items-center gap-3 p-3 rounded-xl border border-dashed opacity-60"
               >
-                <CategoryIcon iconName={category.icon} size={24} color={category.color} />
+                <CategoryIcon
+                  iconName={category.icon}
+                  size={24}
+                  color={category.color}
+                />
                 <div className="flex-1 flex items-center gap-2">
-                  <span className="text-sm text-[#312E81]">{category.name}</span>
+                  <span className="text-sm text-[#312E81]">
+                    {category.name}
+                  </span>
                   {category.isCustom && (
-                    <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      Custom
+                    </Badge>
                   )}
                 </div>
                 <Button
@@ -306,34 +365,63 @@ export function Settings({
           </div>
         )}
 
-        {(visibleCategories.length > 0 || hiddenCategories.length > 0) && <Separator />}
+        {(visibleCategories.length > 0 || hiddenCategories.length > 0) && (
+          <Separator />
+        )}
 
         {/* Add New Category */}
         <div className="space-y-2">
           <Label className="text-sm text-[#312E81]">Add Custom Category</Label>
-          <p className="text-xs text-[#4C4799]">
+          {/* <p className="text-xs text-[#4C4799]">
             Available icons: Home, Heart, Star, Car, Plane, Shield, Calendar, ShoppingBag, Briefcase, Book, Dumbbell, Music, Camera, Coffee, Gift, Lightbulb, Users, Wrench, Package
-          </p>
+          </p> */}
           <div className="flex gap-2">
-            <Input
+            <Select
+              value={newCategoryIcon}
+              // onValueChange={(
+              //   value: "once" | "daily" | "weekly" | "monthly" | "custom"
+              // ) => setNewCategoryIcon(value)}
+              onValueChange={setNewCategoryIcon}
+            >
+              <SelectTrigger className="h-12 min-w-[100px] w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="overflow-y-scroll h-[250px] min-w-[100px]">
+                {icons.map((iconName) => (
+                  <SelectItem value={iconName} className="">
+                    <CategoryIcon
+                      iconName={iconName}
+                      color={"white"}
+                      textColor="black"
+                    />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* <Input
               value={newCategoryIcon}
               onChange={(e) => setNewCategoryIcon(e.target.value)}
               placeholder="Star"
               className="w-24 h-12"
-            />
+              /> */}
             <Input
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="Category name"
-              className="flex-1 h-12"
+              className="h-12"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleAddCategory();
                 }
               }}
             />
-            <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()} size="icon" className="h-12 w-12 flex-shrink-0">
+            <Button
+              onClick={handleAddCategory}
+              disabled={!newCategoryName.trim()}
+              size="icon"
+              className="h-12 w-12 flex-shrink-0"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -352,26 +440,39 @@ export function Settings({
         {customTemplates.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="h-12 w-12 mx-auto mb-2 text-[#4C4799] opacity-50" />
-            <p className="text-sm text-[#4C4799] mb-1">No custom templates yet</p>
+            <p className="text-sm text-[#4C4799] mb-1">
+              No custom templates yet
+            </p>
             <p className="text-xs text-[#4C4799]">
-              Create a task and save it as a template, or use "Create Template" when adding a new task
+              Create a task and save it as a template, or use "Create Template"
+              when adding a new task
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {customTemplates.map((template) => {
-              const category = categories.find(c => c.id === template.categoryId);
+              const category = categories.find(
+                (c) => c.id === template.categoryId
+              );
               return (
                 <div
                   key={template.id}
                   className="flex items-center gap-3 p-3 rounded-xl border"
                 >
                   {category && (
-                    <CategoryIcon iconName={category.icon} size={24} color={category.color} />
+                    <CategoryIcon
+                      iconName={category.icon}
+                      size={24}
+                      color={category.color}
+                    />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm text-[#312E81] truncate">{template.name}</h4>
-                    <p className="text-xs text-[#4C4799] truncate">{category?.name}</p>
+                    <h4 className="text-sm text-[#312E81] truncate">
+                      {template.name}
+                    </h4>
+                    <p className="text-xs text-[#4C4799] truncate">
+                      {category?.name}
+                    </p>
                   </div>
                   <Button
                     size="sm"
@@ -406,9 +507,9 @@ export function Settings({
             All data is stored locally on your device
           </p>
         </div>
-        
+
         <Separator />
-        
+
         <div className="space-y-2">
           <Button variant="outline" className="w-full h-12">
             Export Data
@@ -431,17 +532,26 @@ export function Settings({
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
+      <AlertDialog
+        open={!!categoryToDelete}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this category? You currently have unfinished tasks in "{categoryToDelete?.name}".
+              Are you sure you want to delete this category? You currently have
+              unfinished tasks in "{categoryToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]">
+            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -449,17 +559,26 @@ export function Settings({
       </AlertDialog>
 
       {/* Demo Mode Confirmation Dialog */}
-      <AlertDialog open={showDemoModeDialog} onOpenChange={setShowDemoModeDialog}>
+      <AlertDialog
+        open={showDemoModeDialog}
+        onOpenChange={setShowDemoModeDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Switch to Demo Mode?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to switch to demo mode? All of your saved tasks will be lost.
+              Are you sure you want to switch to demo mode? All of your saved
+              tasks will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDemoMode} className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]">
+            <AlertDialogCancel className="bg-red-500 text-white hover:bg-red-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDemoMode}
+              className="bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>
