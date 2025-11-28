@@ -1,4 +1,5 @@
-import { Category, Task, Suggestion, UserProfile, Template } from '../types';
+import { Category, Document, Task, Suggestion, UserProfile, Template } from '../types';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 
 const STORAGE_KEYS = {
   CATEGORIES: 'ontrack_categories',
@@ -6,6 +7,7 @@ const STORAGE_KEYS = {
   SUGGESTIONS: 'ontrack_suggestions',
   USER_PROFILE: 'ontrack_user_profile',
   TEMPLATES: 'ontrack_templates',
+  DOCUMENTS: 'ontract_documents'
 };
 
 // Migration map to fix emoji icons to proper icon names
@@ -110,5 +112,52 @@ export const storage = {
   },
   saveTemplates: (templates: Template[]) => {
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+  },
+  getDocuments: (): Document[] => {
+    const raw = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+  },
+  saveDocuments: (documents: Document[]) => {
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(documents));
+  },
+  async persistAttachment(dataUrl: string): Promise<string> {
+    // dataUrl format: data:<mime>;base64,<payload>
+    const [, metaAndBase64] = dataUrl.split("data:");
+    if (!metaAndBase64) throw new Error("Invalid data URL");
+    const [meta, base64] = metaAndBase64.split(",");
+    const ext = (meta.match(/image\/(\w+)/)?.[1]) ||
+                (meta.includes("pdf") ? "pdf" : "bin");
+    const fileName = `doc_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+    await Filesystem.writeFile({
+      path: fileName,
+      data: base64,
+      directory: Directory.Data, // sandboxed app container
+    });
+
+    return fileName; // store this in task.attachments
+  },
+  async readAttachment(path: string, mimeType?: string): Promise<string> {
+    const result = await Filesystem.readFile({
+      path,
+      directory: Directory.Data,
+    });
+    const mt = mimeType || this.guessMimeFromPath(path) || "application/octet-stream";
+    return `data:${mt};base64,${result.data}`;
+  },
+  guessMimeFromPath(path: string): string | undefined {
+    const ext = path.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "png": return "image/png";
+      case "jpg":
+      case "jpeg": return "image/jpeg";
+      case "gif": return "image/gif";
+      case "pdf": return "application/pdf";
+      case "txt": return "text/plain";
+      case "md": return "text/markdown";
+      case "json": return "application/json";
+      default: return undefined;
+    }
   },
 };

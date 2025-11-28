@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 interface TaskCreationModeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectMode: (mode: "quick" | "document-camera" | "document-upload" | "template" | "create-template") => void;
+  onSelectMode: (mode: "quick" | "document-upload" | "template" | "create-template") => void;
   onCancel: () => void;
 }
 
@@ -59,31 +59,6 @@ export function TaskCreationModeDialog({
               <h3 className="text-[#312E81] mb-1">Quick Add</h3>
               <p className="text-sm text-[#4C4799]">
                 Start from scratch and create a custom task
-              </p>
-            </div>
-          </div>
-        </Card>
-        {/* Add from document*/}
-        <Card
-          className={`p-6 cursor-pointer hover:border-primary hover:shadow-md transition-all active:scale-[0.98] border-2 ${
-            selectedOption === "document-camera"
-              ? "bg-gradient-to-r from-blue-50 to-green-50 border-primary shadow-md"
-              : "bg-white text-[#312E81]"
-          }`}
-          onClick={() => {
-            // onSelectMode("quick");
-            // onOpenChange(false);
-            setSelectedOption("document-camera");
-          }}
-        >
-          <div className="flex items-start gap-4">
-            <div className="bg-[#5E5E5E] p-3 rounded-xl">
-              <CameraIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-[#312E81] mb-1">Add from camera</h3>
-              <p className="text-sm text-[#4C4799]">
-                Create a task from taking a photo
               </p>
             </div>
           </div>

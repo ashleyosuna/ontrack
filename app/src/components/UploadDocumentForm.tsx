@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, SetStateAction } from "react";
 import { Task, Category, Reminder, Template } from "../types";
 import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
@@ -37,8 +37,10 @@ export function UploadDocumentForm({
   defaultCategoryId,
 }: UploadDocumentProps) {
 
-  const [file, setFile] = useState<File | null>(null);
-  const [attachmentDataUrl, setAttachmentDataUrl] = useState<string | null>(null);
+  const [mode, setMode] = useState<"upload" | "camera">("upload"); // NEW
+  const [capturing, setCapturing] = useState(false); // NEW (camera active)
+  const videoRef = useRef<HTMLVideoElement | null>(null); // NEW
+  const streamRef = useRef<MediaStream | null>(null); // NEW
   const [name, setName] = useState("");
   const [rawText, setRawText] = useState("");
   const [loadingParse, setLoadingParse] = useState(false);
@@ -51,30 +53,66 @@ export function UploadDocumentForm({
   const [attachMode, setAttachMode] = useState<boolean>(false);
   const [docToTask, setDocToTask] = useState<boolean>(true);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(null);
+  const [cameraDataUrl, setCameraDataUrl] = useState<string | null>(null);
+  const activeDataUrl = mode === "upload" ? uploadDataUrl : cameraDataUrl;
 
-  const inferCategory = (text: string, cats: Category[], fallback?: string) => {
-    const kw: Record<string, string[]> = {
-      /*These are only the default categories, thoughts on extending them in the future or using an llm?*/
-      'Home Maintenance': [],
-      'Health': [],
-      'Taxes & Finance': [],
-      'Subscriptions': [],
-      'Warranties': [],
-      'Travel': [],
-      'Vehicle': [],
-      'Insurance': [],
-      'Personal': [] // This is the default!
-    }
-    const lower = text.toLowerCase();
-    let best: { id: string; score: number } | null = null;
-    for (const c of cats) {
-      const name = c.name || ''
-      const list = [...(kw[name] || []), name.toLowerCase()];
-      const score = list.reduce((s, k) => (lower.includes(k) ? s + 1 : s), 0);
-      if (!best || score > best.score) best = {id: c.id, score}
-    }
+  const changeMode = (mode: SetStateAction<"upload" | "camera">) => {
+    // if (mode === "upload") setUploadDataUrl(activeDataUrl);
+    // if (mode === "camera") setCameraDataUrl(activeDataUrl);
+    setMode(mode);
+  }
 
-    return best && best.score > 0 ? best.id : (fallback || "");
+  const startCamera = async () => {
+    try {
+      setCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err) {
+      console.error("Camera error:", err);
+      setCapturing(false);
+      alert("Unable to access camera. Please allow camera permissions or use Upload.");
+    }
+  };
+
+  const stopCamera = () => {
+    setCapturing(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        // @ts-expect-error: srcObject not in lib dom older types
+        videoRef.current.srcObject = null;
+      } catch {}
+    }
+  };
+
+  const takePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    setCameraDataUrl(dataUrl);
+    setName(`Photo ${new Date().toLocaleString()}`);
+    stopCamera();
   };
 
   const readAsDataURL = (f: File): Promise<string> =>
@@ -87,273 +125,315 @@ export function UploadDocumentForm({
 
   const replaceFile = () => inputRef.current?.click();
 
-  const onReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onReplace = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) void handleFile(f); // your existing loader -> sets preview/name
+    if (!f) {
+      e.currentTarget.value = "";
+      return;
+    }
+    const dataUrl = await readAsDataURL(f);
+    setUploadFile(f);
+    setUploadDataUrl(dataUrl);
+    // Update name based on file
+    setName(f.name.replace(/\.[a-z0-9]+$/i, ""));
     e.currentTarget.value = ""; // allow re-selecting same file later
   };
 
-
-  const handleFile = async (f: File) => {
-    setFile(f);
-    const base = f.name.replace(/\.[a-z0-9]+$/i, "");
-    if (!name.trim()) setName(f.name.replace(/\.[a-z0-9]+$/i, ""));
-    else setName(f.name.replace(/\.[a-z0-9]+$/i, ""));
-    const dataUrl = await readAsDataURL(f);
-    setAttachmentDataUrl(dataUrl)
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeDataUrl) return;
 
-    if (!attachmentDataUrl) return;
-
-    /*Create a new task from the document*/
     if (docToTask) {
-      return;
-    }
-    /*Attach to existing tasks*/
-    if (attachMode) {
-      if (!selectedTaskId) return;
-      onAttachToTask(selectedTaskId, attachmentDataUrl);
+      if (!title.trim()) return;
+      onCreateTask({
+        title: title.trim(),
+        description: description.trim(),
+        date: new Date(),
+        categoryId: "",
+        notes: notes.trim(),
+        attachments: [activeDataUrl],
+        reminders: [],
+        completed: false,
+      });
       onCancel();
       return;
     }
-    /*Create a new task*/
-    //XXX please fix to read the file
-    if (!title.trim()) return;
-    onCreateTask({
-      title: title.trim(),
-      description: description.trim(),
-      date: new Date(),
-      categoryId: "",
-      notes: notes.trim(),
-      attachments: [attachmentDataUrl],
-      reminders: [],
-      completed: false,
-    })
-    onCancel();
-    // onSave({
-    //   name: name.trim(),
-    //   title: title.trim(),
-    //   description: description.trim(),
-    //   categoryId,
-    //   notes: notes.trim(),
-    //   reminders,
-    //   isPreset: false,
-    // });
+
+    if (attachMode) {
+      if (!selectedTaskId) return;
+      onAttachToTask(selectedTaskId, activeDataUrl);
+      onCancel();
+      return;
+    }
   };
+
+  useEffect(() => {
+    // Stop camera if user leaves camera mode or unmounts
+    return () => stopCamera();
+  }, []);
+
+  useEffect(() => {
+    if (mode === "camera") {
+      // leaving upload -> clear upload selection for clarity
+      void startCamera();
+    } else {
+      // leaving camera -> clear captured photo and stop stream
+      stopCamera();
+    }
+  }, [mode]);
 
 
   return (
     <div className="space-y-5 relative">
       {/* Header */}
       <Button
-        onClick={onCancel}
+        onClick={() => {
+          stopCamera();
+          onCancel();
+        }}
         variant="outline"
         size="icon"
         className="absolute top-0 left-0"
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
-      {/*<div className="flex justify-center">
-        <h2 className="text-[#312E81] text-xl font-semibold">
-          {template ? "Edit Template" : "Upload Document"}
-        </h2>
-      </div>*/}
 
-      {/* Form if a file has not been uploaded XXX make better and allow camera*/}
-      { !file && (
-        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 p-5 border-purple-200">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="file" className="text-[#312E81]">
-                  Upload File
-                </Label>
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg"
-                  onChange={onReplace}
-                  className="h-60 border-dashed border-2 border-[#312E81] rounded-lg text-sm py-14 px-6 cursor-pointer"
+      {/* When no asset yet: let user choose Upload or Camera */}
+      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 p-5 border-purple-200">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Mode selector */}
+          <div className="space-y-2">
+            <Label className="text-[#312E81]">Add document</Label>
+            <div className="grid grid-cols-2 rounded-lg overflow-hidden border border-[#D6D3F5]">
+              <button
+                type="button"
+                onClick={() => changeMode("upload")}
+                className={
+                  (mode === "upload"
+                    ? "bg-[#312E81] text-white"
+                    : "bg-white text-[#312E81]") +
+                  " px-4 py-2 text-sm font-medium transition-colors"
+                }
+              >
+                Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => changeMode("camera")}
+                className={
+                  (mode === "camera"
+                    ? "bg-[#312E81] text-white"
+                    : "bg-white text-[#312E81]") +
+                  " px-4 py-2 text-sm font-medium transition-colors"
+                }
+              >
+                Camera
+              </button>
+            </div>
+          </div>
+
+          {/* Upload mode */}
+          {mode === "upload" && (
+            <div className= {uploadDataUrl ? "flex items-center justify-between space-y-2" : "space-y-2"}>
+              <Label className="text-[#312E81]">
+                {uploadDataUrl ? "Replace File" : "Upload File"}
+              </Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg,.jpg,.gif,image/*"
+                onChange={onReplace}
+                className= {!uploadDataUrl ? 
+                  "h-60 border-dashed border-2 border-[#312E81] rounded-lg text-sm py-14 px-6 cursor-pointer" :
+                  "max-w-xs"
+                }
                 />
-                <p className="text-sm text-[#4C4799] text-center">
-                  Tap to select a document
-                </p>
-              </div>
+              {!uploadDataUrl && (<p className="text-sm text-[#4C4799] text-center">
+                Tap to select a document
+              </p>)}
+            </div>
+          )}
 
-              <div className="flex flex-col gap-3 pt-4">
-                <Button
-                  className="h-12"
-                  onClick={() => {
-                    onChangeToCamera("document-camera");
-                  }}
-                >
-                  Take a Photo
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!name.trim() || !title.trim()}
-                  className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
-                >
-                  Upload Document
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className="h-12"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Card>
-      )}
-      { file && (
-        <>
-          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 border-purple-200">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="file" className="text-[#312E81]">
-                  Replace File
-                </Label>
-                <Input
-                  ref={inputRef}
-                  id="file"
-                  type="file"
-                  accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg"
-                  onChange={onReplace}
-                />
-                <p className="text-xs text-[#4C4799]">
-                  Current: {file.name} {loadingParse && "(parsing...)"}
-                </p>
-              </div>
-              { attachmentDataUrl && (
-                <div>
-                <Label className="text-[#312E81]">Document Preview</Label>
-                  <FilePreview
-                    file={file || undefined}
-                    dataUrl={attachmentDataUrl || undefined}
-                    filename={file?.name}
-                    height={384}
-                    className="bg-white/60 space-y-6"
-                  />
-                </div>
-              )}
-
-              {/* Mode toggle */}
-              <div className="flex items-center justify-between py-2">
-                <Label className="text-[#312E81]">Attach documents to existing tasks</Label>
-                <Switch
-                  checked={attachMode}
-                  onCheckedChange={(val: boolean) => {
-                    setAttachMode(val);
-                    if (!val) setSelectedTaskId("");
-                  }}
-                  className="bg-gray-300 data-[state=checked]:bg-[#312E81] transition-colors duration-200"
+          {/* Camera mode */}
+          {mode === "camera" && !cameraDataUrl && (
+            <div className="space-y-3">
+              <Label className="text-[#312E81]">Camera</Label>
+              <div className="relative rounded-lg overflow-hidden border border-[#312E81] bg-black">
+                <video
+                  ref={videoRef}
+                  className="w-full h-[320px] object-contain"
+                  playsInline
+                  muted
                 />
               </div>
-
-              {/* Create task from document toggle */}
-              <div className="flex items-center justify-between py-2">
-                <Label className="text-[#312E81]">Convert Document to Task</Label>
-                <Switch
-                  checked={docToTask}
-                  onCheckedChange={(val: boolean) => {
-                    setDocToTask(val);
-                    if (!val) setSelectedTaskId("");
-                  }}
-                  className="bg-gray-300 data-[state=checked]:bg-[#312E81] transition-colors duration-200"
-                />
+              <div className="flex gap-3">
+                {capturing ? (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={takePhoto}
+                      className="flex-1 bg-[#312E81] text-white"
+                    >
+                      Capture
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        // restart stream
+                        stopCamera();
+                        void startCamera();
+                      }}
+                    >
+                      Retake
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={startCamera}
+                    className="flex-1 bg-[#312E81] text-white"
+                  >
+                    Start Camera
+                  </Button>
+                )}
               </div>
+            </div>
+          )}
+        {!activeDataUrl && (
+          <div className="flex flex-col gap-3 pt-4">
+            <Button
+              type="button"
+              disabled={!activeDataUrl}
+              className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
+              onClick={() => {
+                // If a file is already selected via upload, do nothing here.
+                // If using camera, user must press Capture first (sets attachmentDataUrl).
+              }}
+            >
+              Continue
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                stopCamera();
+                onCancel();
+              }}
+              className="h-12"
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+        </form>
 
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-[#312E81]">
-                  Document Name *
-                </Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setName(e.target.value)
-                  }
-                  placeholder="e.g., Lease Agreement 2025"
-                  className="h-12"
-                  required
-                />
+      {/* When we have a file/photo: show same preview + form */}
+      {activeDataUrl && (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Replace or Retake */}
+            <div className="flex items-center justify-between">
+              {mode === "camera" && (
+                <Label className="text-[#312E81]">
+                Retake Photo
+              </Label>)}
+              <div className="flex gap-2">
+                {mode === "camera" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCameraDataUrl(null);
+                      changeMode("camera");
+                    }}
+                  >
+                    Retake
+                  </Button>
+                )}
               </div>
+            </div>
+            <div>
+              <Label className="text-[#312E81]">{mode === "camera" ? "Photo Preview" : "Document Preview" }</Label>
+              <FilePreview
+                file={mode === "upload" ? uploadFile || undefined : undefined}
+                dataUrl={mode === "upload" ? uploadDataUrl || undefined : cameraDataUrl || undefined}
+                filename={(mode === "upload" ? uploadFile?.name : undefined) || name}
+                height={384}
+                className="bg-white/60 space-y-6"
+              />
+            </div>
 
-              { attachMode && ( 
-                <div>
-                </div>
-              )}
-                  <div className="space-y-2">
-                  <Label htmlFor="description" className="text-[#312E81]">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      setDescription(e.target.value)
-                    }
-                    placeholder="Add details..."
-                    rows={3}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-[#312E81]">
+                Document Name *
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
+                placeholder="e.g., Lease Agreement 2025"
+                className="h-12"
+                required
+              />
+            </div>
 
-              {rawText && (
-                <div className="space-y-1">
-                  <Label className="text-[#312E81]">Extracted Preview</Label>
-                  <Textarea
-                    value={rawText}
-                    readOnly
-                    rows={4}
-                    className="opacity-80"
-                  />
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-[#312E81]">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setDescription(e.target.value)
+                }
+                placeholder="Add details..."
+                rows={3}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[#312E81]">
-                  Notes
-                </Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setNotes(e.target.value)
-                  }
-                  placeholder="Additional notes..."
-                  rows={3}
-                />
-              </div>
-              <div className="flex flex-col gap-3 pt-2">
-                <Button
-                  type="submit"
-                  disabled={
-                    !name.trim() || !attachmentDataUrl
-                  }
-                  className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
-                >
-                  {attachmentDataUrl ? "Save Changes" : "Save Document"}
-                </Button>
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-[#312E81]">
+                Notes
+              </Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNotes(e.target.value)
+                }
+                placeholder="Additional notes..."
+                rows={3}
+              />
+            </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className="h-12"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </>
-      )}
+            {/* Submit */}
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                type="submit"
+                disabled={!name.trim() || !activeDataUrl}
+                className="h-12 bg-[#312E81] text-white hover:bg-[#4338CA]"
+              >
+                {attachMode ? "Attach to Task" : mode === "camera" ? "Save Photo" : "Save Document"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  stopCamera();
+                  onCancel();
+                }}
+                className="h-12"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
     </div>
   );
 }

@@ -11,7 +11,6 @@ import { TaskCreationModeDialog } from "./components/TaskCreationModeDialog";
 import { TemplateForm } from "./components/TemplateForm";
 import { UploadDocumentForm } from "./components/UploadDocumentForm";
 import { PhotoForm } from "./components/PhotoForm";
-import { DocumentsView } from "./components/Documents";
 import { Button } from "./components/ui/button";
 import {
   Home,
@@ -25,6 +24,7 @@ import {
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
+  Document,
   Category,
   Task,
   Suggestion,
@@ -54,12 +54,12 @@ type View =
   | "select-template"
   | "documents"
   | "add-document-upload"
-  | "add-document-camera";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>("dashboard");
@@ -99,6 +99,7 @@ export default function App() {
     const savedTasks = storage.getTasks();
     const savedSuggestions = storage.getSuggestions();
     const savedTemplates = storage.getTemplates();
+    const savedDocuments = storage.getDocuments();
 
     // First time user - don't auto-initialize, let them go through onboarding
     if (!profile) {
@@ -159,6 +160,7 @@ export default function App() {
     setTasks(savedTasks);
     setSuggestions(savedSuggestions);
     setTemplates(savedTemplates);
+    setDocuments(savedDocuments);
     setIsInitialized(true);
   }, []);
 
@@ -568,7 +570,7 @@ export default function App() {
   };
 
   const handleModeSelected = (
-    mode: "quick" | "template" | "create-template" | "document-upload" | "document-camera"
+    mode: "quick" | "template" | "create-template" | "document-upload"
   ) => {
     setPreviousView(currentView);
     if (mode === "quick") {
@@ -576,8 +578,6 @@ export default function App() {
       setCurrentView("add-task");
     } else if (mode === "document-upload") {
       setCurrentView("add-document-upload");
-    } else if (mode === "document-camera") {
-      setCurrentView("add-document-camera")
     } else if (mode === "template") {
       // Open template selection dialog
       // setShowTemplateDialog(true);
@@ -674,11 +674,6 @@ export default function App() {
     setCurrentView("categories");
     setSelectedCategoryId(null);
   };
-
-  const navigateToDocuments = () => {
-    setCurrentView("documents");
-    setSelectedCategoryId(null);
-  }
 
   const navigateToReminders = () => {
     setCurrentView("reminders");
@@ -899,13 +894,6 @@ export default function App() {
           />
         )}
 
-        {currentView === "add-document-camera" && (
-          <PhotoForm
-            onSave={handleEditTask}
-            onCancel={navigateToDashboard}
-          />
-        )}
-
         {currentView === "edit-task" && selectedTask && (
           <TaskForm
             task={selectedTask}
@@ -929,19 +917,6 @@ export default function App() {
             templates={templates}
             onEditTemplate={navigateToEditTemplate}
             onDeleteTemplate={handleDeleteTemplate}
-          />
-        )}
-        {currentView === "documents" && (
-          <DocumentsView
-            tasks={tasks}
-            templates={templates}
-            onOpenUpload={() => setCurrentView("add-document-upload")}
-            onOpenCamera={() => setCurrentView("add-document-camera")}
-            onBack={() => setCurrentView("dashboard")}
-            onOpenTask={(taskId) => {
-              setSelectedTaskId(taskId);
-              setCurrentView("edit-task");
-            }}
           />
         )}
         {currentView === "reminders" && (
@@ -1020,15 +995,6 @@ export default function App() {
             >
               <List className="h-6 w-6" />
               <span className="text-xs">Categories</span>
-            </button>
-            <button
-              onClick={navigateToDocuments}
-              className={`flex flex-col items-center justify-center pt-3 transition-colors ${
-                currentView === "documents" ? "text-primary" : "text-gray-400"
-              }`}
-            >
-              <Files className="h-6 w-6" />
-              <span className="text-xs">Documents</span>
             </button>
             <button
               onClick={navigateToReminders}

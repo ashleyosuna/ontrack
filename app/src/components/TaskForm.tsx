@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Task, Category, Reminder } from "../types";
+import { useState, useEffect, useRef } from "react";
+import { Task, Category, Reminder, DocumentAttachment } from "../types";
 import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { storage } from "../utils/storage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 interface TaskFormProps {
   task?: Task;
@@ -58,6 +60,7 @@ export function TaskForm({
   templateData,
 }: TaskFormProps) {
   const [formTask, setFormTask] = useState<Task>({
+    id: task?.id || "",
     title: task?.title || templateData?.title || "",
     description: task?.description || templateData?.description || "",
     date: task?.date || new Date(),
@@ -65,6 +68,8 @@ export function TaskForm({
     notes: task?.notes || templateData?.notes || "",
     attachments: task?.attachments || [],
     reminders: task?.reminders || templateData?.reminders || [],
+    completed: task?.completed || false,
+    createdAt: task?.createdAt || new Date(),
   });
 
   const [title, setTitle] = useState(task?.title || templateData?.title || "");
@@ -76,7 +81,7 @@ export function TaskForm({
     task?.categoryId || defaultCategoryId || ""
   );
   const [notes, setNotes] = useState(task?.notes || templateData?.notes || "");
-  const [attachments, setAttachments] = useState<string[]>(
+  const [attachments, setAttachments] = useState<DocumentAttachment[]>(
     task?.attachments || []
   );
   const [reminders, setReminders] = useState<Reminder[]>(
@@ -92,6 +97,63 @@ export function TaskForm({
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string>("");
+
+  const openPreview = async (att: DocumentAttachment) => {
+    console.log("Test");
+    try {
+      const src = att.previewUri
+        ? att.previewUri
+        : att.uri?.startsWith("data:")
+        ? att.uri
+        : await storage.readAttachment(att.uri);
+      setPreviewSrc(src || "");
+      setPreviewName(att.fileName || att.uri);
+      setPreviewOpen(true);
+    } catch {
+      setPreviewSrc("");
+      setPreviewName(att.fileName || att.uri);
+      setPreviewOpen(true);
+    }
+  };
+
+  const readAsDataUrl = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(f);
+    });
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputEl = e.currentTarget; // capture before await
+    const f = inputEl.files?.[0];
+    if (!f) return;
+    try {
+      const dataUrl = await readAsDataUrl(f);
+      const savedPath = await storage.persistAttachment(dataUrl);
+      const att: DocumentAttachment = {
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        uri: savedPath,
+        mimeType: f.type || undefined,
+        fileName: f.name,
+        sizeBytes: f.size,
+        previewUri: f.type?.startsWith("image/") ? dataUrl : undefined,
+        addedAt: new Date(),
+      };
+      setFormTask(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), att],
+      }));
+    } finally {
+      inputEl.value = ""; // safe reset
+    }
+  };
+
+  /*XXX Add a thing that adds Documents on save*/
 
   useEffect(() => {
     if (task) {
@@ -110,6 +172,13 @@ export function TaskForm({
           (typeof task[key] != "string" && task[key] != formTask[key])
         )
           return false;
+      }
+      const a = (task.attachments || []) as DocumentAttachment[];
+      const b = (formTask.attachments || []) as DocumentAttachment[];
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        const ai = a[i], bi = b[i];
+        if ((ai.id || ai.uri) !== (bi.id || bi.uri)) return false;
       }
       return true;
     }
@@ -143,15 +212,6 @@ export function TaskForm({
       saveAsTemplate,
       templateName.trim()
     );
-  };
-
-  const handleFileUpload = () => {
-    // Simulate file upload
-    const mockFileName = `document_${Date.now()}.pdf`;
-    setFormTask({
-      ...formTask,
-      attachments: [...formTask.attachments, mockFileName],
-    });
   };
 
   const removeAttachment = (index: number) => {
@@ -540,10 +600,34 @@ export function TaskForm({
             <div className="space-y-2">
               {formTask?.attachments.map((attachment, index) => (
                 <div
-                  key={index}
+                  key={attachment.id ?? index}
                   className="flex items-center gap-2 p-3 bg-muted rounded-lg"
                 >
-                  <span className="text-sm flex-1 truncate">{attachment}</span>
+                  {/* Optional thumbnail */}
+                  {attachment.previewUri?.startsWith("data:image/") && (
+                    <button
+                      type="button"
+                      onClick={() => openPreview(attachment)}
+                      className="h-10 w-10 rounded border overflow-hidden flex-shrink-0"
+                      title="Click to preview"
+                    >
+                      <img
+                        src={attachment.previewUri}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => openPreview(attachment)}
+                    className="text-sm flex-1 truncate text-left hover:underline"
+                    title={attachment.fileName || attachment.uri}
+                  >
+                    {attachment.fileName || attachment.uri}
+                  </button>
+
                   <Button
                     type="button"
                     size="sm"
@@ -554,20 +638,26 @@ export function TaskForm({
                   </Button>
                 </div>
               ))}
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleFileUpload}
-                  className="w-full h-12"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Document
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Scan or upload documents
-                </p>
-              </>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.md,.pdf,.doc,.docx,.png,.jpeg,image/*"
+                className="hidden"
+                onChange={onFileChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Document
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Tap a file name to preview
+              </p>
             </div>
           </div>
 
@@ -660,6 +750,57 @@ export function TaskForm({
         onAdd={addReminder}
         defaultDate={date}
       /> */}
+
+      {/* Preview dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="truncate">{previewName || "Preview"}</DialogTitle>
+          </DialogHeader>
+
+          {previewSrc ? (
+            previewSrc.startsWith("data:image/") ? (
+              <img
+                src={previewSrc}
+                alt="Attachment preview"
+                className="w-full max-h-[70vh] object-contain rounded border"
+              />
+            ) : previewSrc.startsWith("data:application/pdf") ? (
+              <object
+                data={previewSrc}
+                type="application/pdf"
+                className="w-full h-[70vh] rounded border"
+              >
+                <div className="text-sm text-[#4C4799] p-3">
+                  PDF preview not supported. 
+                  <a href={previewSrc} target="_blank" rel="noreferrer" className="underline">
+                    Open in new tab
+                  </a>
+                </div>
+              </object>
+            ) : previewSrc.startsWith("data:text/") ? (
+              <iframe
+                src={previewSrc}
+                className="w-full h-[70vh] rounded border bg-white"
+                title="Text preview"
+              />
+            ) : (
+              <div className="text-sm text-[#4C4799]">
+                No inline preview available.{" "}
+                {previewSrc.startsWith("data:") && (
+                  <a href={previewSrc} download className="underline">Download</a>
+                )}
+              </div>
+            )
+          ) : (
+            <div className="text-sm text-[#4C4799]">Unable to load preview.</div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
