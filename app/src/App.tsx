@@ -38,7 +38,9 @@ import {
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
 
-type View = 'welcome' | 'onboarding' | 'loading' |
+type View = 'welcome' 
+  | 'onboarding' 
+  | 'loading'
   | "dashboard"
   | "categories"
   | "category"
