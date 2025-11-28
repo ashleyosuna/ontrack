@@ -292,7 +292,7 @@ export function Settings({
 
     }else{
       console.error("Some events failed:", failures);
-      alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
+     // alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
 
     }
   } ;
@@ -637,7 +637,6 @@ export function Settings({
         disabled={!hasGoogleToken || !tasks || tasks.length ===0}
         >
           Sync All Tasks to Google Calendar
-
       </Button>
       </div>
       
