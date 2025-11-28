@@ -214,7 +214,7 @@ export function Onboarding({ onComplete, onDemoMode }: OnboardingProps) {
           <div className="space-y-4">
             <div className="text-center space-y-2">
               {/* <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto" /> */}
-              <img width={60} src="logo.webp" />
+              <img width={60} src="logo.webp" className="mx-auto" />
               <h2 className="text-[#312E81] text-2xl">Personalize</h2>
               <p className="text-[#4C4799] text-sm">
                 Optional. Helps us give better suggestions.
