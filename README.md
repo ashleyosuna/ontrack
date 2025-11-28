@@ -36,7 +36,6 @@ Our goal is to reduce mental clutter and help people stay organized with a robus
 ## Live Demo
 
 https://youtube.com/shorts/dUHoKX2I2Wo?feature=share
-[!Video](https://youtube.com/shorts/dUHoKX2I2Wo?feature=share)
 
 ## Milestones & Documentation
 
