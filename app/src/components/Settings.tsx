@@ -22,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-// import { format } from 'path';
 
 interface SettingsProps {
   categories: Category[];
