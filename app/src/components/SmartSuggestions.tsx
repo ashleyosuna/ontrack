@@ -47,7 +47,7 @@ export default function SmartSuggestions({
                     onClick={() =>
                       onDismissSuggestion(suggestion.id, { temporary: true })
                     }
-                    className="flex flex-col items-center text-xs text-green-600"
+                    className="flex flex-col items-center text-xs text-blue-600"
                   >
                     <span className="leading-none text-sm tracking-tight">
                       Zzz
