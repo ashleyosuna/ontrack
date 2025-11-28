@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import WelcomePage from './components/WelcomeScreen';
+import LoadingPage from './components/LoadingScreen';
 import { Onboarding } from "./components/Onboarding";
 import { Dashboard } from "./components/Dashboard";
 import { CategoryView } from "./components/CategoryView";
@@ -37,7 +39,9 @@ import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import CategoryTab from "./components/CategoryTab";
 
-type View =
+type View = 'welcome' 
+  | 'onboarding' 
+  | 'loading'
   | "dashboard"
   | "categories"
   | "category"
@@ -95,10 +99,16 @@ export default function App() {
     const savedTemplates = storage.getTemplates();
 
     // First time user - don't auto-initialize, let them go through onboarding
-    if (!profile) {
+    // if (!profile) {
+    //   setIsInitialized(true);
+    //   return;
+    // }
+    if (!profile || profile) {
+      setCurrentView('welcome');
       setIsInitialized(true);
       return;
     }
+
 
     // Migrate old profiles
     let migratedProfile = { ...profile };
@@ -702,15 +712,40 @@ export default function App() {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
-  // Show onboarding if not completed
-  if (!userProfile?.hasCompletedOnboarding) {
-    return (
-      <Onboarding
-        onComplete={handleOnboardingComplete}
-        onDemoMode={handleDemoMode}
-      />
-    );
-  }
+  // // Show onboarding if not completed
+  // if (!userProfile?.hasCompletedOnboarding) {
+  //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
+  // }
+  // --- Welcome Screen ---
+if (currentView === 'welcome') {
+  return (
+    <WelcomePage
+      onGetStarted={() => setCurrentView('onboarding')}
+      onDemoMode={handleDemoMode}
+    />
+  );
+}
+
+if (currentView === 'loading') {
+  return (
+    <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+  )
+}
+
+// --- Onboarding Screen ---
+if (currentView === 'onboarding') {
+  return (
+    <Onboarding
+      onComplete={(data) => {
+        handleOnboardingComplete(data);
+        // setCurrentView('dashboard'); // go to dashboard after onboarding
+        setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
+      }}
+      onDemoMode={handleDemoMode}
+    />
+  );
+}
+
 
   // Check if we're on a main view (for bottom nav)
   // const isMainView = [
