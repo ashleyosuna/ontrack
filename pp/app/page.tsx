@@ -9,8 +9,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-50 to-white">
       <Hero />
-      <Features />
       <HowItWorks />
+      <Features />
       <ScreenShowcase />
       <PrivacySection />
       <Footer />

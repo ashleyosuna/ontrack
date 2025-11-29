@@ -20,19 +20,22 @@ const steps = [
     title: "Stay on track",
     description:
       "Review your dashboard, react to suggestions, and let OnTrack keep you organized automatically.",
-    color: "bg-blue-100 text-blue-700",
-  },
+    color: "bg-[#E4F8F0] text-teal-700",
+  }
 ];
 
 export function HowItWorks() {
   return (
-    <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+   
+   <section className="py-20 bg-gradient-to-br from-cyan-600 to-teal-500 relative overflow-hidden text-white">
+     
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-slate-900 mb-4 text-2xl font-semibold">
+          <h2 className="text-white mb-4 text-3xl font-semibold">
             How it works
           </h2>
-          <p className="text-slate-600 text-lg">
+
+          <p className="text-white/90 text-lg">
             Three simple steps to a more organized life
           </p>
         </div>
@@ -47,13 +50,13 @@ export function HowItWorks() {
                   >
                     <span className="text-xl">{item.step}</span>
                   </div>
-                  <h3 className="text-slate-900">{item.title}</h3>
-                  <p className="text-slate-600">{item.description}</p>
+                  <h3 className="text-white-900">{item.title}</h3>
+                  <p className="text-white-600">{item.description}</p>
                 </div>
 
                 {index < steps.length - 1 && (
                   <div className="hidden md:block absolute top-8 left-[60%] w-[80%]">
-                    <ArrowRight className="w-6 h-6 text-slate-300" />
+                    <ArrowRight className="w-8 h-6 text-white" />
                   </div>
                 )}
               </div>

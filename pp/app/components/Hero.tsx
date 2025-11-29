@@ -18,45 +18,45 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Navigation */}
-      <nav className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-slate-900">OnTrack</span>
+      <div className="lg:py-10 bg-gradient-to-br from-purple-100 to-cyan-100">
+        {/* Logo Banner */}
+        <div className="w-full">
+          <div className="container mx-auto px-6 flex justify-center">
+            <img 
+              src="OnTrack_Banner_Logo.webp" 
+              alt="OnTrack logo" 
+              className="h-37 w-auto"
+            />
           </div>
-          {/* <Button variant="outline" className="rounded-full" disabled>
-            Get Started
-          </Button> */}
         </div>
-      </nav>
+      </div>
 
       {/* Hero Content */}
-      <div className="container mx-auto px-6 py-20 lg:py-32">
+      <div className="container mx-auto px-6 mt-5 mb-15">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-primary rounded-full">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-slate-900 rounded-full">
               <Bell className="w-4 h-4" />
               <span className="text-sm">
-                No account required • 100% private
+                Your data stays on your device • 100% private
               </span>
             </div>
 
             <div className="text-slate-900">
-              <h1 className="text-2xl font-semibold">
-                Life admin, simplified.
+              <h1 className="text-3xl font-semibold">
+                Your personal assistant for life tasks
               </h1>
-              <span className="block text-primary mt-2">
-                Stay on track, effortlessly.
+              <span className="block text-purple-900 mt-2">
+                Never miss a renewal, deadline, or checkup again.
               </span>
             </div>
 
-            <p className="text-slate-600 text-lg max-w-lg">
-              Smart reminders for everything life throws at you. From passport
-              renewals to dental checkups, OnTrack keeps you organized with
-              context-aware suggestions and zero hassle.
+            <p className="text-slate-800 text-lg max-w-lg">
+              Your digital filing cabinet in one device. With OnTrack,
+              set smart reminders for everything life throws at you.
+              From passport renewals, car insurance, annual checkups. 
+              OnTrack keeps you organized with context-aware suggestions 
+              and zero hassle.
             </p>
 
             {/* TODO: uncomment once we have an MVP */}
@@ -73,15 +73,15 @@ export function Hero() {
             </div> */}
 
             <div className="flex flex-col gap-4">
-              <span className="text-slate-600 text-lg max-w-lg">
-                We're almost ready to launch! Be the first one to be notified.
+              <span className="text-slate-800 text-lg max-w-lg">
+                We're almost ready to launch! Be the first to know.
               </span>
               <form
                 className="flex flex-col md:flex-row gap-2"
                 action={formAction}
               >
                 <Input
-                  className="md:w-2/3 border-primary bg-white h-[40px]"
+                  className="md:w-2/3 border-[#403ca1] bg-white h-[40px]"
                   placeholder="Enter your email"
                   name="email"
                   // onChange={(e) => setEmail(e.target.value)}

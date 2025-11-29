@@ -17,10 +17,10 @@ export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200">
       {/* CTA Section */}
-      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 py-16">
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 py-16">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-slate-900 mb-4 text-2xl font-semibold">
-            Ready to get organized?
+          <h2 className="text-slate-900 mb-4 text-2xl font-bold">
+            Ready to take control of your life tasks?
           </h2>
           {/* <p className="text-slate-600 text-lg mb-8 max-w-2xl mx-auto">
             Download OnTrack today and experience life admin without the stress.
@@ -38,7 +38,7 @@ export function Footer() {
             </Button>
           </div> */}
           <p>
-            We can't wait for you to join us! Be the first one to be notified.
+            We're launching soon! Join the waitlist to be the first to know.
           </p>
           <form
             className="mt-4 flex flex-col md:flex-row gap-2 md:justify-center"
@@ -46,7 +46,7 @@ export function Footer() {
           >
             <Input
               type="email"
-              className="md:w-1/2 border-primary bg-white h-[40px]"
+              className="md:w-1/2 border-[#403ca1] bg-white h-[40px]"
               placeholder="Enter your email"
               name="email"
             />
@@ -59,30 +59,27 @@ export function Footer() {
       <div className="container mx-auto px-6 py-12">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-slate-900">OnTrack</span>
-            </div>
-            <p className="text-slate-600 max-w-sm">
-              Smart reminders and life admin simplified. Stay organized with
-              context-aware suggestions, zero accounts, and complete privacy.
+            <div className="flex items-center gap-3">
+  <img 
+    src="OnTrack_Banner_Logo.webp" 
+    alt="OnTrack logo" 
+    className="h-25 w-auto mb-3"
+  />
+</div>
+            <p className="text-slate-700 max-w-sm">
+              Your personal assistant for adulting tasks. Never miss renewals,
+              deadlines, or checkups — with helpful guidance and complete privacy.
             </p>
           </div>
 
           <div className="">
-            <h4 className="text-slate-900 mb-4">Product</h4>
-            <ul className="space-y-2 text-slate-600">
+            <h4 className="text-slate-800 mb-4">Product</h4>
+            <ul className="space-y-2 text-slate-800">
               <li>
-                <a href="#features" className="hover:text-emerald-600">
-                  Features
-                </a>
+                <a href="#features" className="hover:text-emerald-600">Features</a>
               </li>
               <li>
-                <a href="#privacy" className="hover:text-emerald-600">
-                  Privacy
-                </a>
+                <a href="#privacy" className="hover:text-emerald-600">Privacy</a>
               </li>
               {/* <li>
                 <a href="#download" className="hover:text-emerald-600">
@@ -98,8 +95,8 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-slate-900 mb-4">Company</h4>
-            <ul className="space-y-2 text-slate-600">
+            <h4 className="text-slate-800 mb-4">Company</h4>
+            <ul className="space-y-2 text-slate-800">
               {/* <li>
                 <a href="#about" className="hover:text-emerald-600">
                   About
