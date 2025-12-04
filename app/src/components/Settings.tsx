@@ -348,8 +348,42 @@ export function Settings({
     }
   } ;
 
+  // delete all tasks 
+  const clearAllTasks = () => {
+    const confirmDel = confirm( 
+      "Delete all tasks stored locally? This action cannot be undone."
+    );
+    if(!confirmDel) return;
+
+    // try {
+    //   localStorage.saveTasks([]); //overwrite save tasks
+      
+    // }catch (err) {
+    //   console.error("Failed to clear tasks:", err);
+    //   alert("failed to clear local tasks. See console for details");
+    //   return;
+    // }
+    try {
+      const knownKeys = ["tasks", "ontrack_tasks", "ontrack-data", "app_tasks"];
+      knownKeys.forEach((k) => localStorage.removeItem(k));
+      Object.keys(localStorage).forEach((k)=> {
+        if(/tasks/i.test(k)) localStorage.removeItem(k);
+      });
+
+      //disconnect google calendar if possible
+      disconnectGoogleCalendar();
+
+    }catch (err) {
+      console.error("failed to clear tasks:", err);
+    }
+    alert("All local tasks have been deleted. The app will reload to reflect changes.");
+
+    window.location.reload();
+    
+  }
+
   //const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
-  const GOOGLE_CLIENT_ID = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) || "YOUR_GOOGLE_CLIENT_ID";
+  const GOOGLE_CLIENT_ID = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) || "547529104184-kuu975onhf1b7sffurc0lk65cv44h50u.apps.googleusercontent.com";
   const tokenClientRef = useRef<any | null>(null);
   const [hasGoogleToken, setHasGoogleToken] = useState<boolean>(() => !!localStorage.getItem("google_access_token"));
   
@@ -840,7 +874,7 @@ export function Settings({
           <Button variant="outline" className="w-full h-12">
             Import Data
           </Button>
-          <Button variant="destructive" className="w-full h-12">
+          <Button variant="destructive" className="w-full h-12" onClick={clearAllTasks}>
             Clear All Data
           </Button>
         </div>
