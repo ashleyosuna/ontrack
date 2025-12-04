@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import WelcomePage from './components/WelcomeScreen';
+import LoadingPage from './components/LoadingScreen';
 import { Onboarding } from "./components/Onboarding";
 import { Dashboard } from "./components/Dashboard";
 import { CategoryView } from "./components/CategoryView";
@@ -39,8 +41,12 @@ import {
 } from "./utils/assistant";
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
+import CategoryTab from "./components/CategoryTab";
+import { getRandomDailyReminderMessage, hasNotificationOnDate } from "./utils/DailyReminder";
 
-type View =
+type View = 'welcome' 
+  | 'onboarding' 
+  | 'loading'
   | "dashboard"
   | "categories"
   | "category"
@@ -55,12 +61,56 @@ type View =
   | "documents"
   | "add-document-upload"
 
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildSmartSuggestionPool(
+  tasks: Task[],
+  categories: Category[],
+  userProfile: UserProfile,
+  options?: { includeHiddenCategories?: boolean }
+): Suggestion[] {
+  const pool: Suggestion[] = [];
+
+  // Task-based suggestions (only if tasks exist)
+  if (categories.length > 0 && tasks.length > 0) {
+    const taskBased = generateSuggestions(tasks, categories);
+    pool.push(...taskBased);
+  }
+
+  // Category-based suggestions (even when there are no tasks)
+  if (!userProfile.demoMode && categories.length > 0) {
+    const trackedCategoryNames = options?.includeHiddenCategories
+      ? Array.from(
+          new Set([
+            ...(userProfile.preferredCategories || []),
+            ...(userProfile.hiddenCategories || []),
+          ])
+        )
+      : userProfile.preferredCategories;
+
+    const categorySuggestions = generateCategoryBasedSuggestions(
+      categories,
+      trackedCategoryNames
+    );
+    pool.push(...categorySuggestions);
+  }
+  return pool;
+}
+
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestionPool, setSuggestionPool] = useState<Suggestion[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -103,6 +153,7 @@ export default function App() {
 
     // First time user - don't auto-initialize, let them go through onboarding
     if (!profile) {
+      setCurrentView('welcome');
       setIsInitialized(true);
       return;
     }
@@ -164,50 +215,202 @@ export default function App() {
     setIsInitialized(true);
   }, []);
 
-  // Generate task-based suggestions when tasks exist
-  useEffect(() => {
-    if (categories.length > 0 && tasks.length > 0) {
-      const newSuggestions = generateSuggestions(tasks, categories);
-      // Merge with existing feedback
-      const mergedSuggestions = newSuggestions.map((newSug) => {
-        const existing = suggestions.find((s) => s.id === newSug.id);
-        return existing
-          ? {
-              ...newSug,
-              feedback: existing.feedback,
-              dismissed: existing.dismissed,
-            }
-          : newSug;
-      });
-      setSuggestions(mergedSuggestions);
-      storage.saveSuggestions(mergedSuggestions);
-    }
-  }, [tasks, categories]);
+  const now = new Date();
 
-  // Generate category-based suggestions when user has no tasks (normal mode only)
-  useEffect(() => {
-    if (
-      !userProfile?.demoMode &&
-      userProfile?.hasCompletedOnboarding &&
-      tasks.length === 0 &&
-      categories.length > 0 &&
-      isInitialized
-    ) {
-      const categorySuggestions = generateCategoryBasedSuggestions(
-        categories,
-        userProfile.preferredCategories
-      );
-      setSuggestions(categorySuggestions);
-      storage.saveSuggestions(categorySuggestions);
+  // First-time build
+  if (suggestions.length === 0) {
+    let fullPool = buildSmartSuggestionPool(
+      tasks,
+      categories,
+      userProfile,
+      { includeHiddenCategories: false }
+    );
+
+    // -----------------------------------------------------
+    // DEMO MODE — FORCE FIRST 4 SMART SUGGESTIONS
+    // -----------------------------------------------------
+    if (userProfile.demoMode) {
+      const hero: Suggestion[] = [
+        {
+          id: "demo-hero-oil-change",
+          title: "Oil change",
+          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
+          message:
+            "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
+          type: "action",
+          relevance: 100,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-timing-belt",
+          title: "Check timing belt",
+          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
+          message:
+            "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
+          type: "tip",
+          relevance: 99,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-health-annual",
+          title: "Annual health and dental check",
+          categoryId: categories.find(c => c.name === "Health")?.id ?? categories[0]?.id ?? "",
+          message:
+            "Quick win: most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
+          type: "tip",
+          relevance: 98,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-warranty-quick-win",
+          title: "Save receipt and serial for warranties",
+          categoryId: categories.find(c => c.name === "Warranties")?.id ?? categories[0]?.id ?? "",
+          message:
+            "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
+          type: "action",
+          relevance: 97,
+          dismissed: false,
+          createdAt: now,
+        },
+      ];
+
+      // Optional: if the underlying pool ever contains text-duplicates of these,
+      // you could filter them out by message, but safest is to just leave them.
+      const combined = [...hero, ...shuffle(fullPool)];
+      setSuggestions(combined.slice(0, 6));
+      setSuggestionPool(combined.slice(6));
+      return;
     }
+
+// ---------- Normal (non-demo) first-time path ----------
+    const combined = shuffle(fullPool);
+    setSuggestions(combined.slice(0, 6));
+    setSuggestionPool(combined.slice(6));
+    return;
+  }
+
+  // -----------------------------------------------------
+  // Top up to 6 suggestions (demo + normal)
+  // -----------------------------------------------------
+  if (suggestions.length < 6) {
+    const needed = 6 - suggestions.length;
+
+    let refill = suggestionPool.slice(0, needed);
+    let newPool = suggestionPool.slice(needed);
+
+    if (refill.length < needed) {
+      // Pool ran out → rebuild and EXPAND to include hidden categories
+      const rebuiltFullPool = buildSmartSuggestionPool(
+        tasks,
+        categories,
+        userProfile,
+        { includeHiddenCategories: true }
+      );
+
+      const rebuiltShuffled = shuffle(rebuiltFullPool);
+
+      const extraNeeded = needed - refill.length;
+      refill = [...refill, ...rebuiltShuffled.slice(0, extraNeeded)];
+      newPool = rebuiltShuffled.slice(extraNeeded);
+    }
+
+    setSuggestions([...suggestions, ...refill]);
+    setSuggestionPool(newPool);
+  }
+}, [
+  tasks,
+  categories,
+  userProfile,
+  suggestionPool,
+  suggestions,
+  isInitialized,
+]);
+
+// ---------------------------------------------------------------------------
+  // Daily reminder notification (toast-based)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!userProfile?.notificationsEnabled || !userProfile.dailyReminderTime) {
+      return;
+    }
+
+    // Build a list of *other* notifications from task reminders
+    const notificationsForTasks = tasks.flatMap((task) =>
+      (task.reminders ?? [])
+        .filter((r) => r.enabled && r.time)
+        .map((r) => ({ time: r.time }))
+    );
+
+    const today = new Date();
+
+    // If there's *any* other notification scheduled today, skip the daily nudge
+    if (hasNotificationOnDate(notificationsForTasks, today)) {
+      return;
+    }
+
+    // Parse "HH:MM" from userProfile.dailyReminderTime (24h stored from Settings)
+    const [hourStr, minuteStr] = userProfile.dailyReminderTime.split(":");
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+      return;
+    }
+
+    const now = new Date();
+    const scheduled = new Date();
+    scheduled.setHours(hour, minute, 0, 0);
+
+     // If today's time has already passed, schedule for tomorrow instead
+    if (scheduled <= now) {
+      scheduled.setDate(scheduled.getDate() + 1);
+    }
+
+    const delay = scheduled.getTime() - now.getTime();
+
+    const timeoutId = window.setTimeout(() => {
+      // Re-check right before firing: if tasks now have notifications today, bail out
+      const stillHasOtherNotifications = hasNotificationOnDate(
+        notificationsForTasks,
+        new Date()
+      );
+      if (stillHasOtherNotifications) return;
+
+      const message = getRandomDailyReminderMessage(
+        suggestions // uses suggestion.message, ignores dismissed ones
+      );
+
+      toast(message);
+    }, delay);
+
+    // Clear timeout if dependencies change (time, tasks, suggestions, toggle)
+    return () => window.clearTimeout(timeoutId);
   }, [
-    userProfile?.demoMode,
-    userProfile?.hasCompletedOnboarding,
-    userProfile?.preferredCategories,
-    tasks.length,
-    categories.length,
-    isInitialized,
+    userProfile?.notificationsEnabled,
+    userProfile?.dailyReminderTime,
+    tasks,
+    suggestions,
   ]);
+
+  const handleOnboardingComplete = (data: {
+    preferredCategories: string[];
+    age?: string;
+    gender?: string;
+  }) => {
+    const hiddenCategoryNames = DEFAULT_CATEGORIES
+      .map((c) => c.name)
+      .filter((name) => !data.preferredCategories.includes(name));
+
+    const profile: UserProfile = {
+      preferredCategories: data.preferredCategories,
+      hiddenCategories: hiddenCategoryNames,
+      age: data.age,
+      gender: data.gender,
+      hasCompletedOnboarding: true,
+
 
   const handleOnboardingComplete = (data: {
     preferredCategories: string[];
@@ -225,12 +428,11 @@ export default function App() {
       demoMode: false,
     };
 
-    // Initialize ALL predefined categories (show all by default)
+    // Initialize ALL predefined categories
     const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
       ...cat,
       id: `category-${Date.now()}-${index}`,
     }));
-
     setUserProfile(profile);
     setCategories(initialCategories);
     storage.saveUserProfile(profile);
@@ -238,21 +440,29 @@ export default function App() {
     toast.success("Welcome to OnTrack! 🎉");
   };
 
+  const DEMO_CATEGORY_NAMES = ["Subscriptions", "Health", "Warranties", "Vehicle"];
+
+  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES
+  .map((c) => c.name)
+  .filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
+
+  // ---------------------------------------------------------------------------
+  // Demo mode from onboarding button
+  // ---------------------------------------------------------------------------
   const handleDemoMode = () => {
-    // Initialize with all categories and demo mode enabled
+    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
+      ...cat,
+      id: `category-${Date.now()}-${index}`,
+    }));
+
     const profile: UserProfile = {
-      preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-      hiddenCategories: [],
+      preferredCategories: DEMO_CATEGORY_NAMES,
+      hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
       hasCompletedOnboarding: true,
       calendarIntegration: true,
       notificationsEnabled: true,
       demoMode: true,
     };
-
-    const initialCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
-      ...cat,
-      id: `category-${Date.now()}-${index}`,
-    }));
 
     const demoTasks = generateDemoTasks(initialCategories);
 
@@ -265,26 +475,28 @@ export default function App() {
 
     // Navigate to dashboard
     setCurrentView("dashboard");
-    toast.success("Welcome to Demo Mode! 🎉");
+    toast.success("Welcome to Demo Mode!");
   };
 
   const handleToggleDemoMode = (enabled: boolean) => {
-    if (!userProfile) return;
+    if (!userProfile && !enabled) {
+      setCurrentView("onboarding");
+      return;
+    }
 
     if (enabled) {
-      // Turn ON demo mode - load all categories and demo data
-      const updatedProfile = {
-        ...userProfile,
-        demoMode: true,
-        preferredCategories: DEFAULT_CATEGORIES.map((c) => c.name),
-        hiddenCategories: [],
-      };
-
       // Create all categories
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
       }));
+
+      const updatedProfile: UserProfile = {
+        ...userProfile!,
+        demoMode: true,
+        preferredCategories: DEMO_CATEGORY_NAMES,
+        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
+      };
 
       const demoTasks = generateDemoTasks(allCategories);
 
@@ -295,20 +507,29 @@ export default function App() {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
-      // Navigate to dashboard
+      setSuggestions([]);        // let demo logic rebuild them
+      setSuggestionPool([]);
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
     } else {
-      // Turn OFF demo mode - clear everything and return to onboarding
+      // --- TURNING DEMO MODE OFF ---
+      // Treat this like a brand-new install
       localStorage.clear();
+
       setUserProfile(null);
       setCategories([]);
       setTasks([]);
-      setSuggestions([]);
-      setCurrentView("dashboard");
-      toast.success("Demo mode disabled. Starting fresh!");
+      setSuggestionPool([]);
+      setTemplates([]);
+      setDocuments([]);
+
+      // We’re already initialized (app shell is up), just move to onboarding
+      setCurrentView("onboarding");
+      toast.success("Demo mode disabled. Let’s set things up for you!");
     }
   };
+
+
 
   const handleAddTask = (
     taskData: Omit<Task, "id" | "createdAt">,
@@ -499,28 +720,29 @@ export default function App() {
     storage.saveTasks(updatedTasks);
   };
 
-  const handleDismissSuggestion = (suggestionId: string) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, dismissed: true } : s
-    );
-    setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
+  const dismissSuggestion = (id: string) => {
+    const updated = suggestions.filter(s => s.id !== id);
+    setSuggestions(updated);
   };
 
-  const handleSuggestionFeedback = (
-    suggestionId: string,
-    feedback: "more" | "less"
+   const snoozeSuggestion = (id: string) => {
+    const updated = suggestions.filter(s => s.id !== id);
+    setSuggestions(updated);
+  };
+  const handleDismissSuggestion = (
+    id: string,
+    options?: { temporary?: boolean }
   ) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, feedback } : s
-    );
-    setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
-    toast.success(
-      feedback === "more"
-        ? "We'll show more like this 👍"
-        : "We'll show less like this 👎"
-    );
+    if (options?.temporary) {
+      // snooze: remove it from the visible 6, but don’t permanently kill it
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+      // the effect that keeps count at 6 will refill
+    } else {
+      // hard dismiss: same behavior for now (we’re not doing permanent removal yet)
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+    }
   };
 
   const handleAddCategory = (categoryData: Omit<Category, "id">) => {
@@ -800,7 +1022,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Sparkles className="h-12 w-12 text-[#2C7A7B] mx-auto mb-4 animate-pulse" />
+          <img
+            src="logo.webp"
+            width={"35px"}
+            className="mx-auto mb-4 animate-pulse"
+          />
           <p className="text-[#4338CA]">Loading...</p>
         </div>
       </div>
@@ -816,10 +1042,34 @@ export default function App() {
     : [];
 
   // Show onboarding if not completed
-  if (!userProfile?.hasCompletedOnboarding) {
+  // if (!userProfile?.hasCompletedOnboarding) {
+  //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
+  // }
+  // --- Welcome Screen ---
+  if (currentView === 'welcome') {
+    return (
+      <WelcomePage
+        onGetStarted={() => setCurrentView('onboarding')}
+        onDemoMode={handleDemoMode}
+      />
+    );
+  }
+
+  if (currentView === 'loading') {
+    return (
+      <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+    )
+  }
+
+  // --- Onboarding Screen ---
+  if (currentView === 'onboarding') {
     return (
       <Onboarding
-        onComplete={handleOnboardingComplete}
+        onComplete={(data) => {
+          handleOnboardingComplete(data);
+          // setCurrentView('dashboard'); // go to dashboard after onboarding
+          setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
+        }}
         onDemoMode={handleDemoMode}
       />
     );
@@ -837,25 +1087,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        style={{ top: "calc(var(--safe-area-inset-top)" }}
+      />
 
       {/* Mobile Header */}
-      <header
-        className="bg-[#2C7A7B] border-b border-[#236767] sticky top-0 z-50 shadow-sm"
+      {/* <header
+        className="sticky top-0 z-50 bg-white border-b shadow-sm"
         style={{ paddingTop: "var(--safe-area-inset-top)" }}
       >
         <div className="px-4 pb-4">
           <div className="flex items-center justify-center">
-            <h2 className="text-[#F8FAFC] text-3xl relative">
+            <h2 className="text-primary text-3xl relative">
               <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
               OnTrack
             </h2>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
-      <main className="px-4 py-6 max-w-2xl mx-auto">
+      <main
+        className="px-4 max-w-2xl mx-auto"
+        style={{ paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)", paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+      >
         {currentView === "dashboard" && (
           <Dashboard
             tasks={tasks}
@@ -874,68 +1130,14 @@ export default function App() {
         )}
 
         {currentView === "categories" && userProfile && (
-          <div className="space-y-4">
-            <h1 className="text-[#312E81] text-2xl font-bold">Categories</h1>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Completed Tasks Category */}
-              <div
-                className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm border-t-4 border-green-500"
-                onClick={() => {
-                  setSelectedCategoryId("completed");
-                  setCurrentView("category");
-                }}
-              >
-                <div className="text-center space-y-1.5">
-                  <div className="mb-1 flex justify-center">
-                    <CheckCircle
-                      style={{ width: "48px", height: "48px" }}
-                      className="text-green-500"
-                    />
-                  </div>
-                  <h4 className="text-sm text-[#312E81]">Completed</h4>
-                  <p className="text-xs text-[#4C4799]">
-                    {tasks.filter((t) => t.completed).length} tasks
-                  </p>
-                </div>
-              </div>
-
-              {categories
-                .filter(
-                  (category) =>
-                    !userProfile.hiddenCategories.includes(category.name)
-                )
-                .map((category) => {
-                  const categoryTaskCount = tasks.filter(
-                    (t) => t.categoryId === category.id && !t.completed
-                  ).length;
-                  return (
-                    <div
-                      key={category.id}
-                      className="bg-white rounded-2xl p-4 cursor-pointer transition-all active:scale-95 shadow-sm"
-                      onClick={() => navigateToCategory(category.id)}
-                      style={{ borderTop: `4px solid ${category.color}` }}
-                    >
-                      <div className="text-center space-y-1.5">
-                        <div className="mb-1 flex justify-center">
-                          <CategoryIcon
-                            iconName={category.icon}
-                            size={48}
-                            color={category.color}
-                          />
-                        </div>
-                        <h4 className="text-sm text-[#312E81]">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-[#4C4799]">
-                          {categoryTaskCount}{" "}
-                          {categoryTaskCount === 1 ? "task" : "tasks"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+          <CategoryTab
+            userProfile={userProfile}
+            tasks={tasks}
+            categories={categories}
+            setSelectedCategoryId={setSelectedCategoryId}
+            setCurrentView={setCurrentView}
+            navigateToCategory={navigateToCategory}
+          />
         )}
 
         {currentView === "category" && selectedCategoryId === "completed" && (
