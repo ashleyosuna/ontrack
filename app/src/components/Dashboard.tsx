@@ -71,7 +71,8 @@ export function Dashboard({
   };
 
   const upcomingTasks = tasks
-    .filter((task) => !task.completed && task.date >= new Date())
+      // include today even if earlier than now
+    .filter((task) => !task.completed && (!isPast(task.date) || isToday(task.date))) 
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 5);
 
@@ -361,7 +362,8 @@ export function Dashboard({
                       )}
                       <div className="flex items-center gap-1 text-xs text-[#4C4799]">
                         <Calendar className="h-3 w-3" />
-                        <span>{formatTaskDate(task.date)}</span>
+                        <span> {isToday(task.date)? `${("Today")} · ${format(task.date, "h:mm a")}`
+                        : format(task.date, "MMM d, yyyy")}</span>
                       </div>
                     </div>
                   </div>

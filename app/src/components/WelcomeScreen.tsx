@@ -141,7 +141,7 @@ interface WelcomePageProps {
 
 export default function WelcomePage({ onGetStarted, onDemoMode }: WelcomePageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-50 to-green-50 flex flex-col justify-between px-6 pt-20 pb-10">
+    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-green-100 flex flex-col justify-between px-6 pt-20 pb-10">
       {/* Centered text section */}
       <div className="flex flex-col items-center justify-center flex-1 text-center space-y-4">
         <h1 className="text-[#312E81] text-2xl font-bold">
@@ -161,12 +161,6 @@ export default function WelcomePage({ onGetStarted, onDemoMode }: WelcomePagePro
           className="w-full h-12 bg-white text-[#312E81] hover:bg-gray-100 rounded-xl text-lg transition border border-blue-200"
         >
           Get Started
-        </Button>
-        <Button
-          onClick={onDemoMode}
-          className="w-full h-12 bg-transparent text-[#312E81] hover:bg-gray-100 rounded-xl text-sm transition"
-        >
-          Try Demo Mode
         </Button>
       </div>
     </div>

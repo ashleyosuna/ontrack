@@ -96,7 +96,7 @@ export function Onboarding({ onComplete, onDemoMode }: OnboardingProps) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-blue-50 to-green-50"
+      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-blue-100 to-green-100"
       style={{
         paddingTop: "calc(var(--safe-area-inset-top) + 15px)",
         paddingBottom: "var(--safe-area-inset-bottom)",
@@ -198,13 +198,6 @@ export function Onboarding({ onComplete, onDemoMode }: OnboardingProps) {
                 className="w-full h-12 bg-[#312E81] text-[#F8FAFC] hover:bg-[#4338CA]"
               >
                 Continue
-              </Button>
-              <Button
-                onClick={onDemoMode}
-                variant="outline"
-                className="w-full h-12 border-[#312E81] text-[#312E81] hover:bg-[#312E81]/10"
-              >
-                Try me in Demo Mode
               </Button>
             </div>
           </div>
