@@ -355,20 +355,9 @@ export function Settings({
     );
     if(!confirmDel) return;
 
-    // try {
-    //   localStorage.saveTasks([]); //overwrite save tasks
-      
-    // }catch (err) {
-    //   console.error("Failed to clear tasks:", err);
-    //   alert("failed to clear local tasks. See console for details");
-    //   return;
-    // }
     try {
       const knownKeys = ["tasks", "ontrack_tasks", "ontrack-data", "app_tasks"];
       knownKeys.forEach((k) => localStorage.removeItem(k));
-      // Object.keys(localStorage).forEach((k)=> {
-      //   if(/tasks/i.test(k)) localStorage.removeItem(k);
-      // });
 
       //disconnect google calendar if possible
       disconnectGoogleCalendar();
@@ -376,7 +365,7 @@ export function Settings({
     }catch (err) {
       console.error("failed to clear tasks:", err);
     }
-    alert("All local tasks have been deleted. The app will reload to reflect changes.");
+    //alert("All local tasks have been deleted. The app will reload to reflect changes.");
 
     window.location.reload();
     
@@ -433,10 +422,6 @@ export function Settings({
     setHasGoogleToken(false);
     onUpdateProfile({ ...userProfile, calendarIntegration: false});
   };
-  // track state when changes made in other tabs  
-  // useEffect(() => {
-  //   const onStorage = (stEvent: StorageEvent)
-  // })
   return (
     <div className="space-y-5">
       {/* Header - Remove back button on mobile settings */}
