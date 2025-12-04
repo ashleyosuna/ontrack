@@ -139,7 +139,7 @@ export function generateDemoTasks(categories: Category[]): Task[] {
       },
       {
         id: `task-${now}-subs-2`,
-        title: 'Gym Membership Due',
+        title: 'Gym Membership',
         description: 'Annual gym membership renewal',
         date: new Date(now + 28 * 24 * 60 * 60 * 1000),
         categoryId: subsCat.id,

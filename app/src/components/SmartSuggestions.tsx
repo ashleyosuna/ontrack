@@ -24,7 +24,7 @@ export default function SmartSuggestions({
     touchThreshold: 10,
     adaptiveHeight: false,
   };
-
+  
   return (
     <>
       {suggestions.length > 0 && (

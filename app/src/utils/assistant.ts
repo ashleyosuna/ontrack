@@ -130,7 +130,7 @@ function buildBaselineSuggestions(opts: {
     suggestions.push({
       id: "suggestion-category-vehicle-service",
       message:
-        "Quick win: pick one day this month to book any overdue vehicle service (oil change, brakes, or a general inspection).",
+        "Quick win: pick one day this month to book any overdue vehicle service.",
       type: "action",
       relevance: 8,
       dismissed: false,
@@ -138,9 +138,19 @@ function buildBaselineSuggestions(opts: {
     });
 
     suggestions.push({
+      id: "suggestion-category-oil-change",
+      message:
+        "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
+      type: "action",
+      relevance: 9,
+      dismissed: false,
+      createdAt: now,
+    });
+
+    suggestions.push({
       id: "suggestion-category-vehicle-km-general",
       message:
-        "If your vehicle is around 40,000–100,000 km, it’s a great time to check brakes, tires, fluids, and the timing belt so nothing surprises you on a big drive.",
+        "Going on a big drive? Might be smart to take your vehicle in for an inspection if it's been a while.",
       type: "tip",
       relevance: 7,
       dismissed: false,
@@ -162,7 +172,7 @@ function buildBaselineSuggestions(opts: {
         {
           id: "suggestion-vehicle-brakes-generic",
           message:
-            "Brake pads often need attention somewhere between 40,000–60,000 km — consider a brake inspection if you’re in that range.",
+            "Brake pads often need attention every 2-3 years — consider a brake inspection if you’re in that range.",
           type: "tip",
           relevance: 7,
           dismissed: false,

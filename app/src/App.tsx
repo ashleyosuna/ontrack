@@ -61,12 +61,56 @@ type View = 'welcome'
   | "documents"
   | "add-document-upload"
 
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildSmartSuggestionPool(
+  tasks: Task[],
+  categories: Category[],
+  userProfile: UserProfile,
+  options?: { includeHiddenCategories?: boolean }
+): Suggestion[] {
+  const pool: Suggestion[] = [];
+
+  // Task-based suggestions (only if tasks exist)
+  if (categories.length > 0 && tasks.length > 0) {
+    const taskBased = generateSuggestions(tasks, categories);
+    pool.push(...taskBased);
+  }
+
+  // Category-based suggestions (even when there are no tasks)
+  if (!userProfile.demoMode && categories.length > 0) {
+    const trackedCategoryNames = options?.includeHiddenCategories
+      ? Array.from(
+          new Set([
+            ...(userProfile.preferredCategories || []),
+            ...(userProfile.hiddenCategories || []),
+          ])
+        )
+      : userProfile.preferredCategories;
+
+    const categorySuggestions = generateCategoryBasedSuggestions(
+      categories,
+      trackedCategoryNames
+    );
+    pool.push(...categorySuggestions);
+  }
+  return pool;
+}
+
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestionPool, setSuggestionPool] = useState<Suggestion[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -108,16 +152,11 @@ export default function App() {
     const savedDocuments = storage.getDocuments();
 
     // First time user - don't auto-initialize, let them go through onboarding
-    // if (!profile) {
-    //   setIsInitialized(true);
-    //   return;
-    // }
-    if (!profile || profile) {
+    if (!profile) {
       setCurrentView('welcome');
       setIsInitialized(true);
       return;
     }
-
 
     // Migrate old profiles
     let migratedProfile = { ...profile };
@@ -176,50 +215,116 @@ export default function App() {
     setIsInitialized(true);
   }, []);
 
-  // Generate task-based suggestions when tasks exist
-  useEffect(() => {
-    if (categories.length > 0 && tasks.length > 0) {
-      const newSuggestions = generateSuggestions(tasks, categories);
-      // Merge with existing feedback
-      const mergedSuggestions = newSuggestions.map((newSug) => {
-        const existing = suggestions.find((s) => s.id === newSug.id);
-        return existing
-          ? {
-              ...newSug,
-              feedback: existing.feedback,
-              dismissed: existing.dismissed,
-            }
-          : newSug;
-      });
-      setSuggestions(mergedSuggestions);
-      storage.saveSuggestions(mergedSuggestions);
-    }
-  }, [tasks, categories]);
+useEffect(() => {
+  if (!isInitialized || !userProfile) return;
 
-  // Generate category-based suggestions when user has no tasks (normal mode only)
-  useEffect(() => {
-    if (
-      !userProfile?.demoMode &&
-      userProfile?.hasCompletedOnboarding &&
-      tasks.length === 0 &&
-      categories.length > 0 &&
-      isInitialized
-    ) {
-      const categorySuggestions = generateCategoryBasedSuggestions(
-        categories,
-        userProfile.preferredCategories
-      );
-      setSuggestions(categorySuggestions);
-      storage.saveSuggestions(categorySuggestions);
+  const now = new Date();
+
+  // First-time build
+  if (suggestions.length === 0) {
+    let fullPool = buildSmartSuggestionPool(
+      tasks,
+      categories,
+      userProfile,
+      { includeHiddenCategories: false }
+    );
+
+    // -----------------------------------------------------
+    // DEMO MODE — FORCE FIRST 4 SMART SUGGESTIONS
+    // -----------------------------------------------------
+    if (userProfile.demoMode) {
+      const hero: Suggestion[] = [
+        {
+          id: "demo-hero-oil-change",
+          message:
+            "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
+          type: "action",
+          relevance: 100,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-timing-belt",
+          message:
+            "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
+          type: "tip",
+          relevance: 99,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-health-annual",
+          message:
+            "Quick win: most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
+          type: "tip",
+          relevance: 98,
+          dismissed: false,
+          createdAt: now,
+        },
+        {
+          id: "demo-hero-warranty-quick-win",
+          message:
+            "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
+          type: "action",
+          relevance: 97,
+          dismissed: false,
+          createdAt: now,
+        },
+      ];
+
+      // Optional: if the underlying pool ever contains text-duplicates of these,
+      // you could filter them out by message, but safest is to just leave them.
+      const combined = [...hero, ...shuffle(fullPool)];
+
+      setSuggestions(combined.slice(0, 6));
+      setSuggestionPool(combined.slice(6));
+      return;
     }
-  }, [
-    userProfile?.demoMode,
-    userProfile?.hasCompletedOnboarding,
-    userProfile?.preferredCategories,
-    tasks.length,
-    categories.length,
-    isInitialized,
-  ]);
+
+    // ---------- Normal (non-demo) first-time path ----------
+    const combined = shuffle(fullPool);
+    setSuggestions(combined.slice(0, 6));
+    setSuggestionPool(combined.slice(6));
+    return;
+  }
+
+  // -----------------------------------------------------
+  // Top up to 6 suggestions (demo + normal)
+  // -----------------------------------------------------
+  if (suggestions.length < 6) {
+    const needed = 6 - suggestions.length;
+
+    let refill = suggestionPool.slice(0, needed);
+    let newPool = suggestionPool.slice(needed);
+
+    if (refill.length < needed) {
+      // Pool ran out → rebuild and EXPAND to include hidden categories
+      const rebuiltFullPool = buildSmartSuggestionPool(
+        tasks,
+        categories,
+        userProfile,
+        { includeHiddenCategories: true }
+      );
+
+      const rebuiltShuffled = shuffle(rebuiltFullPool);
+
+      const extraNeeded = needed - refill.length;
+      refill = [...refill, ...rebuiltShuffled.slice(0, extraNeeded)];
+      newPool = rebuiltShuffled.slice(extraNeeded);
+    }
+
+    setSuggestions([...suggestions, ...refill]);
+    setSuggestionPool(newPool);
+  }
+}, [
+  tasks,
+  categories,
+  userProfile,
+  suggestionPool,
+  suggestions,
+  isInitialized,
+]);
+
 
     // ---------------------------------------------------------------------------
   // Daily reminder notification (toast-based)
@@ -357,25 +462,30 @@ export default function App() {
     toast.success("Welcome to Demo Mode!");
   };
 
-
   // ---------------------------------------------------------------------------
   // Demo mode toggle in settings
   // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
-    if (!userProfile) return;
+  // If there's no profile yet and we're turning demo OFF,
+  // just send them to onboarding.
+    if (!userProfile && !enabled) {
+      setCurrentView("onboarding");
+      return;
+    }
 
     if (enabled) {
-      const updatedProfile: UserProfile = {
-        ...userProfile,
-        demoMode: true,
-        preferredCategories: DEMO_CATEGORY_NAMES,
-        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
-      };
-
+      // --- TURNING DEMO MODE ON ---
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
       }));
+
+      const updatedProfile: UserProfile = {
+        ...userProfile!,
+        demoMode: true,
+        preferredCategories: DEMO_CATEGORY_NAMES,
+        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
+      };
 
       const demoTasks = generateDemoTasks(allCategories);
 
@@ -386,18 +496,29 @@ export default function App() {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
+      setSuggestions([]);        // let demo logic rebuild them
+      setSuggestionPool([]);
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
     } else {
+      // --- TURNING DEMO MODE OFF ---
+      // Treat this like a brand-new install
       localStorage.clear();
+
       setUserProfile(null);
       setCategories([]);
       setTasks([]);
       setSuggestions([]);
-      setCurrentView("dashboard");
-      toast.success("Demo mode disabled. Starting fresh!");
+      setSuggestionPool([]);
+      setTemplates([]);
+      setDocuments([]);
+
+      // We’re already initialized (app shell is up), just move to onboarding
+      setCurrentView("onboarding");
+      toast.success("Demo mode disabled. Let’s set things up for you!");
     }
   };
+
 
 
   const handleAddTask = (
@@ -589,37 +710,29 @@ export default function App() {
     storage.saveTasks(updatedTasks);
   };
 
-  const handleDismissSuggestion = (
-    suggestionId: string,
-    options?: { temporary?: boolean }
-  ) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, dismissed: true } : s
-    );
-
-    // Always update in-memory state so the card disappears now - for snooze
-    setSuggestions(updatedSuggestions);
-
-    // Only persist to storage if this is a permanent dismiss
-    if (!options?.temporary) {
-      storage.saveSuggestions(updatedSuggestions);
-    }
+  const dismissSuggestion = (id: string) => {
+    const updated = suggestions.filter(s => s.id !== id);
+    setSuggestions(updated);
   };
 
-  const handleSuggestionFeedback = (
-    suggestionId: string,
-    feedback: "more" | "less"
+  const snoozeSuggestion = (id: string) => {
+    const updated = suggestions.filter(s => s.id !== id);
+    setSuggestions(updated);
+  };
+  const handleDismissSuggestion = (
+    id: string,
+    options?: { temporary?: boolean }
   ) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, feedback } : s
-    );
-    setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
-    toast.success(
-      feedback === "more"
-        ? "We'll show more like this 👍"
-        : "We'll show less like this 👎"
-    );
+    if (options?.temporary) {
+      // snooze: remove it from the visible 6, but don’t permanently kill it
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+      // the effect that keeps count at 6 will refill
+    } else {
+      // hard dismiss: same behavior for now (we’re not doing permanent removal yet)
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+    }
   };
 
   const handleAddCategory = (categoryData: Omit<Category, "id">) => {
@@ -936,7 +1049,6 @@ if (currentView === 'onboarding') {
             onNavigateToTaskDetails={navigateToEditTask}
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
-            onSuggestionFeedback={handleSuggestionFeedback}
             onUpdateTask={handleUpdateTask}
           />
         )}
