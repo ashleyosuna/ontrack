@@ -81,6 +81,18 @@ export function Settings({
     "Package",
   ];
 
+  const dailyReminderTime = userProfile.dailyReminderTime ?? "09:00";
+  const [rawHour = "09", rawMinute = "00"] = dailyReminderTime.split(":");
+
+  const hourNum = Number(rawHour);
+  const minute = rawMinute.padStart(2, "0");
+
+  const isPM = hourNum >= 12;
+  let displayHourNum = hourNum % 12;
+  if (displayHourNum === 0) displayHourNum = 12;
+  const displayHour = displayHourNum.toString().padStart(2, "0");
+
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [categoryToDelete, setCategoryToDelete] = useState<{
@@ -402,7 +414,7 @@ export function Settings({
       {/* Preferences */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-5">
         <h3 className="text-[#312E81]">Preferences</h3>
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label className="text-[#312E81]">Calendar Sync</Label>
@@ -423,26 +435,146 @@ export function Settings({
           </div>
 
           <Separator />
-
-          <div className="flex items-center justify-between py-2">
-            <div className="space-y-0.5">
-              <Label className="text-[#312E81]">Notifications</Label>
-              <p className="text-xs text-[#4C4799]">Get reminders and tips</p>
+          {/* Daily Reminder */}
+          <div className="space-y-2 py-2">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-[#312E81]">Daily Reminder</Label>
+                <p className="text-xs text-[#4C4799]">
+                  One gentle nudge per day when you have no other reminders
+                </p>
+              </div>
+              <Switch
+                checked={userProfile.notificationsEnabled}
+                onCheckedChange={(checked: any) =>
+                  onUpdateProfile({
+                    ...userProfile,
+                    notificationsEnabled: checked,
+                  })
+                }
+                className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-[#312E81]"
+              />
             </div>
-            <Switch
-              checked={userProfile.notificationsEnabled}
-              onCheckedChange={(checked: any) =>
-                onUpdateProfile({
-                  ...userProfile,
-                  notificationsEnabled: checked,
-                })
-              }
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-[#312E81]"
-            />
+
+            {/* Time row: label + hour/min + AM/PM, left-aligned */}
+            <div
+              className={`flex items-center gap-3 pl-1 pr-1 ${
+                !userProfile.notificationsEnabled ? "opacity-50" : ""
+              }`}
+            >
+              <Label className="text-xs text-[#312E81]">Reminder time</Label>
+
+              <div className="flex items-center gap-1">
+                {/* Hours dropdown (1–12) */}
+          <Select
+            disabled={!userProfile.notificationsEnabled}
+            value={displayHour}
+            onValueChange={(newDisplayHour) => {
+              const newDisplayNum = Number(newDisplayHour);
+              let hour24 = newDisplayNum % 12;
+              if (isPM && hour24 !== 12) hour24 += 12;
+              if (!isPM && hour24 === 12) hour24 = 0;
+              const hour24Str = hour24.toString().padStart(2, "0");
+
+              onUpdateProfile({
+                ...userProfile,
+                dailyReminderTime: `${hour24Str}:${minute}`,
+              });
+            }}
+          >
+            <SelectTrigger
+              className="w-12 px-1 text-[11px] leading-none !h-5 !py-0 !min-h-0"
+            >
+              <SelectValue placeholder="HH" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {Array.from({ length: 12 }).map((_, i) => {
+                const h = (i + 1).toString().padStart(2, "0");
+                return (
+                  <SelectItem key={h} value={h}>
+                    {h}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <span className="text-xs text-[#4C4799]">:</span>
+
+          {/* Minutes dropdown (5-min steps) */}
+          <Select
+            disabled={!userProfile.notificationsEnabled}
+            value={minute}
+            onValueChange={(newMinute) => {
+              const hourStr = hourNum.toString().padStart(2, "0");
+              onUpdateProfile({
+                ...userProfile,
+                dailyReminderTime: `${hourStr}:${newMinute}`,
+              });
+            }}
+          >
+            <SelectTrigger
+              className="w-12 px-1 text-[11px] leading-none !h-5 !py-0 !min-h-0"
+            >
+              <SelectValue placeholder="MM" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {["00","05","10","15","20","25","30","35","40","45","50","55"].map(
+                (m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+                {/* AM / PM toggle */}
+                <div className="ml-1 inline-flex rounded-full border border-[#312E81] overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={!userProfile.notificationsEnabled}
+                    onClick={() => {
+                      if (!userProfile.notificationsEnabled || !isPM) return;
+                      let newHour24 = hourNum === 12 ? 0 : hourNum - 12;
+                      const hourStr24 = newHour24.toString().padStart(2, "0");
+                      onUpdateProfile({
+                        ...userProfile,
+                        dailyReminderTime: `${hourStr24}:${minute}`,
+                      });
+                    }}
+                    className={`px-2 py-0.5 text-[11px] rounded-r-full ${
+                      !isPM
+                        ? "bg-[#312E81] text-white"
+                        : "bg-transparent text-[#312E81]"
+                    } ${!userProfile.notificationsEnabled ? "cursor-default" : "cursor-pointer"}`}
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!userProfile.notificationsEnabled}
+                    onClick={() => {
+                      if (!userProfile.notificationsEnabled || isPM) return;
+                      let newHour24 = hourNum === 0 ? 12 : hourNum + 12;
+                      const hourStr24 = newHour24.toString().padStart(2, "0");
+                      onUpdateProfile({
+                        ...userProfile,
+                        dailyReminderTime: `${hourStr24}:${minute}`,
+                      });
+                    }}
+                    className={`px-2 py-0.5 text-[11px] rounded-r-full ${
+                      isPM
+                        ? "bg-[#312E81] text-white"
+                        : "bg-transparent text-[#312E81]"
+                    } ${!userProfile.notificationsEnabled ? "cursor-default" : "cursor-pointer"}`}
+                  >
+                    PM
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-
           <Separator />
-
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label className="text-[#312E81]">Demo Mode</Label>

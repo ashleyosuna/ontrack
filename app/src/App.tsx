@@ -42,6 +42,7 @@ import {
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import CategoryTab from "./components/CategoryTab";
+import { getRandomDailyReminderMessage, hasNotificationOnDate } from "./utils/DailyReminder";
 
 type View = 'welcome' 
   | 'onboarding' 
@@ -218,6 +219,72 @@ export default function App() {
     tasks.length,
     categories.length,
     isInitialized,
+  ]);
+
+    // ---------------------------------------------------------------------------
+  // Daily reminder notification (toast-based)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!userProfile?.notificationsEnabled || !userProfile.dailyReminderTime) {
+      return;
+    }
+
+    // Build a list of *other* notifications from task reminders
+    const notificationsForTasks = tasks.flatMap((task) =>
+      (task.reminders ?? [])
+        .filter((r) => r.enabled && r.time)
+        .map((r) => ({ time: r.time }))
+    );
+
+    const today = new Date();
+
+    // If there's *any* other notification scheduled today, skip the daily nudge
+    if (hasNotificationOnDate(notificationsForTasks, today)) {
+      return;
+    }
+
+    // Parse "HH:MM" from userProfile.dailyReminderTime (24h stored from Settings)
+    const [hourStr, minuteStr] = userProfile.dailyReminderTime.split(":");
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+      return;
+    }
+
+    const now = new Date();
+    const scheduled = new Date();
+    scheduled.setHours(hour, minute, 0, 0);
+
+    // If today's time has already passed, schedule for tomorrow instead
+    if (scheduled <= now) {
+      scheduled.setDate(scheduled.getDate() + 1);
+    }
+
+    const delay = scheduled.getTime() - now.getTime();
+
+    const timeoutId = window.setTimeout(() => {
+      // Re-check right before firing: if tasks now have notifications today, bail out
+      const stillHasOtherNotifications = hasNotificationOnDate(
+        notificationsForTasks,
+        new Date()
+      );
+      if (stillHasOtherNotifications) return;
+
+      const message = getRandomDailyReminderMessage(
+        suggestions // uses suggestion.message, ignores dismissed ones
+      );
+
+      toast(message);
+    }, delay);
+
+    // Clear timeout if dependencies change (time, tasks, suggestions, toggle)
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    userProfile?.notificationsEnabled,
+    userProfile?.dailyReminderTime,
+    tasks,
+    suggestions,
   ]);
 
   const handleOnboardingComplete = (data: {

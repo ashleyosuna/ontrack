@@ -98,6 +98,8 @@ export interface UserProfile {
   calendarIntegration: boolean;
   notificationsEnabled: boolean;
   demoMode: boolean;
+  dailyReminderEnabled?: boolean;
+  dailyReminderTime?: string | null; 
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, "id">[] = [
