@@ -18,6 +18,13 @@ export async function createGoogleEvent(task: {
         const dd = String(newDate.getDate()).padStart(2, "0");
         return '${y}-${m}-${dd}';
     };
+
+    const toDateObj = (d?: string | Date | null): Date | null => {
+        if (!d) return null;
+        const dt = d instanceof Date ? new Date(d.getTime()) : new Date(d);
+        return isNaN(dt.getTime()) ? null : dt;
+    };
+    
     let body: any;
     if (task.allDay) {
         const start = toYYYYMMDD(task.date);
@@ -34,9 +41,18 @@ export async function createGoogleEvent(task: {
             location: task.location ?? "",
         };
     } else {
-        const startIso = toISO(task.date);
-        const endIso = toISO(task.endDate) || startIso;
-        // include timezone for clarity (optional)
+        let startDt = toDateObj(task.date) ?? new Date();;
+        let endDt = toDateObj(task.endDate) ?? null;
+
+        if (startDt.getHours() === 0 && startDt.getMinutes() === 0 && startDt.getSeconds() === 0){
+            startDt.setHours(9, 0, 0, 0); //set to nine am if no start date
+        }
+
+        if(endDt == null){
+            endDt = new Date(startDt.getTime() + 60 *60+1000);
+        }
+        const startIso = toISO(startDt);
+        const endIso = toISO(endDt);
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         body = {
             summary: task.title,
