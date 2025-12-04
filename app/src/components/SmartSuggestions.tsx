@@ -130,10 +130,10 @@ export default function SmartSuggestions({
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateTemplate} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={handleCreateTemplate} variant="secondary" className="text-white">
                   Save as Template
                 </Button>
-                <Button onClick={handleCreateTask} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleCreateTask}>
                   Create Task
                 </Button>
               </div>
