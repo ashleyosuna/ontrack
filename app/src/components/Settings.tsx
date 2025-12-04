@@ -366,9 +366,9 @@ export function Settings({
     try {
       const knownKeys = ["tasks", "ontrack_tasks", "ontrack-data", "app_tasks"];
       knownKeys.forEach((k) => localStorage.removeItem(k));
-      Object.keys(localStorage).forEach((k)=> {
-        if(/tasks/i.test(k)) localStorage.removeItem(k);
-      });
+      // Object.keys(localStorage).forEach((k)=> {
+      //   if(/tasks/i.test(k)) localStorage.removeItem(k);
+      // });
 
       //disconnect google calendar if possible
       disconnectGoogleCalendar();
