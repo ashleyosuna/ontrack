@@ -12,6 +12,10 @@ Users are greeted with a **Welcome Screen** that has a brief explanation of the 
 - Quick, easy selection of categories that should be familiar if they've used other apps (like Spotify)
 - Only a few buttons to get started, so that users don't feel overwhelmed
 
+**Screenshot:**
+![Welcome Screen](./images/flow/welcome.png)
+![Onboarding Screen](./images/flow/onboarding.png)
+
 ## 2. Dashboard Overview
 
 Users land on the **Dashboard**, which displays all upcoming tasks in a clean, visual layout. Tasks are grouped by category and sorted by urgency.
@@ -22,7 +26,7 @@ Users land on the **Dashboard**, which displays all upcoming tasks in a clean, v
 - Option to filter by category or due date
 
 **Screenshot:**  
-TODO
+![Dashboard](./images/flow/dashboard.png)
 
 ---
 
@@ -37,7 +41,7 @@ Users can tap the “Add Task” button to create a new task. They can enter a t
 - Set multiple reminders (e.g., 1 week before, day of)
 
 **Screenshot:**  
-TODO
+![Task Creation](./images/flow/add_task.png)
 
 ---
 
@@ -51,7 +55,7 @@ Users can manage their categories from the settings or task creation screen. The
 - Delete or edit categories as needed
 
 **Screenshot:**  
-TODO
+![Manage Categories](./images/flow/manage_categories.png)
 
 ---
 
@@ -65,7 +69,7 @@ Tapping on a task opens a detailed view where users can see all associated infor
 - Track completion status
 
 **Screenshot:**  
-TODO
+![Task Details](./images/flow/task_details.png)
 
 ## 6. Smart Assistant Prompts
 
@@ -83,7 +87,7 @@ As users add tasks, the **OnTrack Assistant** analyzes their entries and offers 
   “Heads up! Japan requires your passport to be valid for at least 6 months beyond your arrival date. It typically takes 1 month to renew a passport — want to add a reminder to check your expiry?”
 
 **Screenshot:**  
-TODO
+![Welcome Screen](./images/flow/smart_suggestions.png)
 
 
 ---
