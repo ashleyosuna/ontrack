@@ -1049,6 +1049,13 @@ useEffect(() => {
     );
   }
 
+  if (currentView === 'loading') {
+    return (
+      <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+    )
+  }
+
+  // --- Onboarding Screen ---
   if (currentView === 'onboarding') {
     return (
       <Onboarding
