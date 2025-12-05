@@ -513,6 +513,7 @@ useEffect(() => {
       setUserProfile(null);
       setCategories([]);
       setTasks([]);
+      setSuggestions([]);
       setSuggestionPool([]);
       setTemplates([]);
       setDocuments([]);
@@ -1194,6 +1195,7 @@ useEffect(() => {
             onSaveAsTask={handleSaveDocumentAsTask}
             onCancel={navigateToDashboard}
             onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
             onNavigateToTasks={navigateToEditTask}
           />
         )}
