@@ -1,4 +1,5 @@
 import { Task, Category } from '../types';
+import { CategoryIcon } from './CategoryIcon';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -34,7 +35,7 @@ export function CategoryView({
     <div className="space-y-2">
       {tasks.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-          <p className="text-muted-foreground text-sm">
+          <p className="text-[#4C4799] text-sm">
             {showCompleted ? 'No completed tasks' : 'No active tasks'}
           </p>
         </div>
@@ -65,7 +66,7 @@ export function CategoryView({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className={`text-sm truncate ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    <h4 className={`text-sm truncate ${task.completed ? 'line-through text-[#9CA3AF]' : 'text-[#312E81]'}`}>
                       {task.title}
                     </h4>
                     {isOverdue && (
@@ -74,12 +75,12 @@ export function CategoryView({
                   </div>
 
                   {task.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                    <p className="text-xs text-[#4C4799] line-clamp-2 mb-2">
                       {task.description}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-[#4C4799]">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>{formatTaskDate(task.date)}</span>
@@ -109,11 +110,11 @@ export function CategoryView({
         </Button>
 
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-4xl">{category.icon}</span>
-            <h1 className="text-xl">{category.name}</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <CategoryIcon iconName={category.icon} size={40} color={category.color} />
+            <h1 className="text-xl text-[#312E81]">{category.name}</h1>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[#4C4799]">
             {activeTasks.length} active • {completedTasks.length} completed
           </p>
         </div>
@@ -122,9 +123,10 @@ export function CategoryView({
       {/* Floating Add Button for Category */}
       <button
         onClick={onAddTask}
-        className="fixed bottom-24 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center active:bg-blue-700 transition-all active:scale-95 z-10"
+        className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-5 w-5" />
+        <span className="text-sm">New Task</span>
       </button>
 
       {/* Active Tasks */}
