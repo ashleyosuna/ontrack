@@ -61,6 +61,10 @@ Check the wiki folder for documentation
 - Node.js 18+
 - npm
 
+### iOS
+
+For instructions on how to run on XCode, see wiki/iosBuild.md
+
 ### Tech Stack
 
 The tech stack is evolving. Our priority is creating a prototype, and we are mainly using Figma Make for this.
