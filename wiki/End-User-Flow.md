@@ -4,9 +4,15 @@ This page outlines the **OnTrack** user journey — from the first app interacti
 It includes key screens, navigation details, and short descriptions of each stage.
 
 ---
+## 1. Welcome Screen and Onboarding
 
+Users are greeted with a **Welcome Screen** that has a brief explanation of the app's purpose. On the **Onboarding Screen**, they can choose what categories they'd like to keep track of.
 
-## 1. Dashboard Overview
+**Flow highlights:**
+- Quick, easy selection of categories that should be familiar if they've used other apps (like Spotify)
+- Only a few buttons to get started, so that users don't feel overwhelmed
+
+## 2. Dashboard Overview
 
 Users land on the **Dashboard**, which displays all upcoming tasks in a clean, visual layout. Tasks are grouped by category and sorted by urgency.
 
@@ -20,7 +26,7 @@ TODO
 
 ---
 
-## 2. Task Creation
+## 3. Task Creation
 
 Users can tap the “Add Task” button to create a new task. They can enter a title, description, due date, and assign it to a category. Users can also upload relevant documents and set multiple reminders.
 
@@ -35,7 +41,7 @@ TODO
 
 ---
 
-## 3. Category Management
+## 4. Category Management
 
 Users can manage their categories from the settings or task creation screen. They can create new categories, rename existing ones, or delete unused ones.
 
@@ -49,7 +55,7 @@ TODO
 
 ---
 
-## 4. Task Details & Reminders
+## 5. Task Details & Reminders
 
 Tapping on a task opens a detailed view where users can see all associated information, including attached documents, reminder schedule, and category tags.
 
@@ -61,7 +67,7 @@ Tapping on a task opens a detailed view where users can see all associated infor
 **Screenshot:**  
 TODO
 
-## 5. Smart Assistant Prompts
+## 6. Smart Assistant Prompts
 
 As users add tasks, the **OnTrack Assistant** analyzes their entries and offers helpful suggestions based on context. These prompts appear in the dashboard or task detail view and help users stay ahead of deadlines and requirements they might not think to track.
 
