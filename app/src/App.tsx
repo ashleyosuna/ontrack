@@ -215,6 +215,9 @@ export default function App() {
     setIsInitialized(true);
   }, []);
 
+
+useEffect(() => {
+  if (!isInitialized || !userProfile) return;
   const now = new Date();
 
   // First-time build
@@ -280,12 +283,13 @@ export default function App() {
       // Optional: if the underlying pool ever contains text-duplicates of these,
       // you could filter them out by message, but safest is to just leave them.
       const combined = [...hero, ...shuffle(fullPool)];
+      
       setSuggestions(combined.slice(0, 6));
       setSuggestionPool(combined.slice(6));
       return;
     }
 
-// ---------- Normal (non-demo) first-time path ----------
+    // ---------- Normal (non-demo) first-time path ----------
     const combined = shuffle(fullPool);
     setSuggestions(combined.slice(0, 6));
     setSuggestionPool(combined.slice(6));
@@ -329,7 +333,7 @@ export default function App() {
   isInitialized,
 ]);
 
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Daily reminder notification (toast-based)
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -364,7 +368,7 @@ export default function App() {
     const scheduled = new Date();
     scheduled.setHours(hour, minute, 0, 0);
 
-     // If today's time has already passed, schedule for tomorrow instead
+    // If today's time has already passed, schedule for tomorrow instead
     if (scheduled <= now) {
       scheduled.setDate(scheduled.getDate() + 1);
     }
@@ -407,19 +411,6 @@ export default function App() {
     const profile: UserProfile = {
       preferredCategories: data.preferredCategories,
       hiddenCategories: hiddenCategoryNames,
-      age: data.age,
-      gender: data.gender,
-      hasCompletedOnboarding: true,
-
-
-  const handleOnboardingComplete = (data: {
-    preferredCategories: string[];
-    age?: string;
-    gender?: string;
-  }) => {
-    const profile: UserProfile = {
-      preferredCategories: data.preferredCategories,
-      hiddenCategories: [],
       age: data.age,
       gender: data.gender,
       hasCompletedOnboarding: true,
@@ -478,6 +469,9 @@ export default function App() {
     toast.success("Welcome to Demo Mode!");
   };
 
+  // ---------------------------------------------------------------------------
+  // Demo mode toggle in settings
+  // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
     if (!userProfile && !enabled) {
       setCurrentView("onboarding");
@@ -485,7 +479,7 @@ export default function App() {
     }
 
     if (enabled) {
-      // Create all categories
+      // --- TURNING DEMO MODE ON ---
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
@@ -725,7 +719,7 @@ export default function App() {
     setSuggestions(updated);
   };
 
-   const snoozeSuggestion = (id: string) => {
+  const snoozeSuggestion = (id: string) => {
     const updated = suggestions.filter(s => s.id !== id);
     setSuggestions(updated);
   };
