@@ -229,15 +229,29 @@ useEffect(() => {
       { includeHiddenCategories: false }
     );
 
-    // -----------------------------------------------------
-    // DEMO MODE — FORCE FIRST 4 SMART SUGGESTIONS
-    // -----------------------------------------------------
-    if (userProfile.demoMode) {
+    // -------------------------------------------------------------------
+    // ONBOARDING VIDEO CLAUSE:
+    // This is a clause for the video for onboarding profile. When
+    //  Warranties, Subscriptions, Health, Vehicle chosen -
+    //  force the first 4 smart suggestions.
+    // -------------------------------------------------------------------
+    const isOnboardingHeroProfile =
+      !userProfile.demoMode &&
+      Array.isArray(userProfile.preferredCategories) &&
+      userProfile.preferredCategories.length === DEMO_CATEGORY_NAMES.length &&
+      DEMO_CATEGORY_NAMES.every((name) =>
+        userProfile.preferredCategories.includes(name)
+      );
+
+    if (isOnboardingHeroProfile) {
       const hero: Suggestion[] = [
         {
           id: "demo-hero-oil-change",
           title: "Oil change",
-          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
+          categoryId:
+            categories.find((c) => c.name === "Vehicle")?.id ??
+            categories[0]?.id ??
+            "",
           message:
             "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
           type: "action",
@@ -248,7 +262,10 @@ useEffect(() => {
         {
           id: "demo-hero-timing-belt",
           title: "Check timing belt",
-          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
+          categoryId:
+            categories.find((c) => c.name === "Vehicle")?.id ??
+            categories[0]?.id ??
+            "",
           message:
             "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
           type: "tip",
@@ -259,9 +276,12 @@ useEffect(() => {
         {
           id: "demo-hero-health-annual",
           title: "Annual health and dental check",
-          categoryId: categories.find(c => c.name === "Health")?.id ?? categories[0]?.id ?? "",
+          categoryId:
+            categories.find((c) => c.name === "Health")?.id ??
+            categories[0]?.id ??
+            "",
           message:
-            "Quick win: most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
+            "Most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
           type: "tip",
           relevance: 98,
           dismissed: false,
@@ -270,7 +290,10 @@ useEffect(() => {
         {
           id: "demo-hero-warranty-quick-win",
           title: "Save receipt and serial for warranties",
-          categoryId: categories.find(c => c.name === "Warranties")?.id ?? categories[0]?.id ?? "",
+          categoryId:
+            categories.find((c) => c.name === "Warranties")?.id ??
+            categories[0]?.id ??
+            "",
           message:
             "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
           type: "action",
@@ -280,16 +303,13 @@ useEffect(() => {
         },
       ];
 
-      // Optional: if the underlying pool ever contains text-duplicates of these,
-      // you could filter them out by message, but safest is to just leave them.
       const combined = [...hero, ...shuffle(fullPool)];
-      
       setSuggestions(combined.slice(0, 6));
       setSuggestionPool(combined.slice(6));
       return;
     }
 
-    // ---------- Normal (non-demo) first-time path ----------
+    // ---------- Normal + Demo first-time path (no hardcoded demo) ----------
     const combined = shuffle(fullPool);
     setSuggestions(combined.slice(0, 6));
     setSuggestionPool(combined.slice(6));
@@ -332,6 +352,7 @@ useEffect(() => {
   suggestions,
   isInitialized,
 ]);
+
 
   // ---------------------------------------------------------------------------
   // Daily reminder notification (toast-based)
