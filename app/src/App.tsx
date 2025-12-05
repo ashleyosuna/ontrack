@@ -74,6 +74,33 @@ function shuffle<T>(array: T[]): T[] {
   }
   return arr;
 }
+function tieredShuffleSuggestions(pool: Suggestion[]): Suggestion[] {
+  const tier1: Suggestion[] = []; // task-based (have relatedTaskId)
+  const tier2: Suggestion[] = []; // high relevance (>= 8) non-task
+  const tier3: Suggestion[] = []; // medium relevance (5–7) non-task
+  const tier4: Suggestion[] = []; // everything else
+
+  for (const s of pool) {
+    const relevance = s.relevance ?? 0;
+
+    if (s.relatedTaskId) {
+      tier1.push(s);
+    } else if (relevance >= 8) {
+      tier2.push(s);
+    } else if (relevance >= 5) {
+      tier3.push(s);
+    } else {
+      tier4.push(s);
+    }
+  }
+
+  return [
+    ...shuffle(tier1),
+    ...shuffle(tier2),
+    ...shuffle(tier3),
+    ...shuffle(tier4),
+  ];
+}
 
 function buildSmartSuggestionPool(
   tasks: Task[],
@@ -90,7 +117,7 @@ function buildSmartSuggestionPool(
   }
 
   // Category-based suggestions (even when there are no tasks)
-  if (!userProfile.demoMode && categories.length > 0) {
+  if (categories.length > 0) {
     const trackedCategoryNames = options?.includeHiddenCategories
       ? Array.from(
           new Set([
@@ -235,98 +262,20 @@ export default function App() {
     if (!isInitialized || !userProfile) return;
     const now = new Date();
 
-    // First-time build
-    if (suggestions.length === 0) {
-      let fullPool = buildSmartSuggestionPool(tasks, categories, userProfile, {
-        includeHiddenCategories: false,
-      });
+  // First-time build
+  if (suggestions.length === 0) {
+    const fullPool = buildSmartSuggestionPool(
+      tasks,
+      categories,
+      userProfile,
+      { includeHiddenCategories: false }
+    );
 
-      // -------------------------------------------------------------------
-      // ONBOARDING VIDEO CLAUSE:
-      // This is a clause for the video for onboarding profile. When
-      //  Warranties, Subscriptions, Health, Vehicle chosen -
-      //  force the first 4 smart suggestions.
-      // -------------------------------------------------------------------
-      const isOnboardingHeroProfile =
-        !userProfile.demoMode &&
-        Array.isArray(userProfile.preferredCategories) &&
-        userProfile.preferredCategories.length === DEMO_CATEGORY_NAMES.length &&
-        DEMO_CATEGORY_NAMES.every((name) =>
-          userProfile.preferredCategories.includes(name)
-        );
-
-      if (isOnboardingHeroProfile) {
-        const hero: Suggestion[] = [
-          {
-            id: "demo-hero-oil-change",
-            title: "Oil change",
-            categoryId:
-              categories.find((c) => c.name === "Vehicle")?.id ??
-              categories[0]?.id ??
-              "",
-            message:
-              "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
-            type: "action",
-            relevance: 100,
-            dismissed: false,
-            createdAt: now,
-          },
-          {
-            id: "demo-hero-timing-belt",
-            title: "Check timing belt",
-            categoryId:
-              categories.find((c) => c.name === "Vehicle")?.id ??
-              categories[0]?.id ??
-              "",
-            message:
-              "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
-            type: "tip",
-            relevance: 99,
-            dismissed: false,
-            createdAt: now,
-          },
-          {
-            id: "demo-hero-health-annual",
-            title: "Annual health and dental check",
-            categoryId:
-              categories.find((c) => c.name === "Health")?.id ??
-              categories[0]?.id ??
-              "",
-            message:
-              "Most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
-            type: "tip",
-            relevance: 98,
-            dismissed: false,
-            createdAt: now,
-          },
-          {
-            id: "demo-hero-warranty-quick-win",
-            title: "Save receipt and serial for warranties",
-            categoryId:
-              categories.find((c) => c.name === "Warranties")?.id ??
-              categories[0]?.id ??
-              "",
-            message:
-              "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
-            type: "action",
-            relevance: 97,
-            dismissed: false,
-            createdAt: now,
-          },
-        ];
-
-        const combined = [...hero, ...shuffle(fullPool)];
-        setSuggestions(combined.slice(0, 6));
-        setSuggestionPool(combined.slice(6));
-        return;
-      }
-
-      // ---------- Normal + Demo first-time path (no hardcoded demo) ----------
-      const combined = shuffle(fullPool);
-      setSuggestions(combined.slice(0, 6));
-      setSuggestionPool(combined.slice(6));
-      return;
-    }
+    const combined = tieredShuffleSuggestions(fullPool);
+    setSuggestions(combined.slice(0, 6));
+    setSuggestionPool(combined.slice(6));
+    return;
+  }
 
     // -----------------------------------------------------
     // Top up to 6 suggestions (demo + normal)
@@ -346,12 +295,12 @@ export default function App() {
           { includeHiddenCategories: true }
         );
 
-        const rebuiltShuffled = shuffle(rebuiltFullPool);
+      const rebuiltTiered = tieredShuffleSuggestions(rebuiltFullPool);
 
-        const extraNeeded = needed - refill.length;
-        refill = [...refill, ...rebuiltShuffled.slice(0, extraNeeded)];
-        newPool = rebuiltShuffled.slice(extraNeeded);
-      }
+      const extraNeeded = needed - refill.length;
+      refill = [...refill, ...rebuiltTiered.slice(0, extraNeeded)];
+      newPool = rebuiltTiered.slice(extraNeeded);
+    }
 
       setSuggestions([...suggestions, ...refill]);
       setSuggestionPool(newPool);
@@ -550,6 +499,7 @@ export default function App() {
       setUserProfile(null);
       setCategories([]);
       setTasks([]);
+      setSuggestions([]);
       setSuggestionPool([]);
       setTemplates([]);
       setDocuments([]);
@@ -1070,10 +1020,6 @@ export default function App() {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
-  // Show onboarding if not completed
-  // if (!userProfile?.hasCompletedOnboarding) {
-  //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
-  // }
   // --- Welcome Screen ---
   if (currentView === "welcome") {
     return (
@@ -1102,14 +1048,6 @@ export default function App() {
     );
   }
 
-  // Check if we're on a main view (for bottom nav)
-  // const isMainView = [
-  //   "dashboard",
-  //   "categories",
-  //   "category",
-  //   "settings",
-  //   "reminders",
-  // ].includes(currentView);
   const isMainView = true;
 
   return (
@@ -1118,21 +1056,6 @@ export default function App() {
         position="top-center"
         style={{ top: "calc(var(--safe-area-inset-top)" }}
       />
-
-      {/* Mobile Header */}
-      {/* <header
-        className="sticky top-0 z-50 bg-white border-b shadow-sm"
-        style={{ paddingTop: "var(--safe-area-inset-top)" }}
-      >
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-center">
-            <h2 className="text-primary text-3xl relative">
-              <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
-              OnTrack
-            </h2>
-          </div>
-        </div>
-      </header> */}
 
       {/* Main Content */}
       <main
@@ -1230,6 +1153,7 @@ export default function App() {
             onSaveAsTask={handleSaveDocumentAsTask}
             onCancel={navigateToDashboard}
             onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
             onNavigateToTasks={navigateToEditTask}
           />
         )}
@@ -1322,28 +1246,6 @@ export default function App() {
         </button>
       )}
 
-      {/* Task Creation Mode Dialog */}
-      {/* {currentView === "pre-add-task" && (
-        <TaskCreationModeDialog
-          open={showModeDialog}
-          onOpenChange={setShowModeDialog}
-          onSelectMode={handleModeSelected}
-          onCancel={navigateToDashboard}
-        />
-      )} */}
-
-      {/* Template Selection Dialog
-      {currentView === "select-template" && (
-        <TemplateSelectionDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          categories={categories}
-          customTemplates={templates}
-          onSelectTemplate={handleTemplateSelected}
-          onDeleteTemplate={handleDeleteTemplate}
-        />
-      )} */}
-
       {/* Bottom Navigation */}
       {isMainView && (
         <nav
@@ -1403,28 +1305,6 @@ export default function App() {
           <span className="text-sm">New Task</span>
         </button>
       )}
-
-      {/* Task Creation Mode Dialog */}
-      {/* {currentView === "pre-add-task" && (
-        <TaskCreationModeDialog
-          open={showModeDialog}
-          onOpenChange={setShowModeDialog}
-          onSelectMode={handleModeSelected}
-          onCancel={navigateToDashboard}
-        />
-      )} */}
-
-      {/* Template Selection Dialog
-      {currentView === "select-template" && (
-        <TemplateSelectionDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          categories={categories}
-          customTemplates={templates}
-          onSelectTemplate={handleTemplateSelected}
-          onDeleteTemplate={handleDeleteTemplate}
-        />
-      )} */}
     </div>
   );
 }
