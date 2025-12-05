@@ -46,6 +46,7 @@ import {
   getRandomDailyReminderMessage,
   hasNotificationOnDate,
 } from "./utils/DailyReminder";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 type View =
   | "welcome"
@@ -217,6 +218,17 @@ export default function App() {
     setTemplates(savedTemplates);
     setDocuments(savedDocuments);
     setIsInitialized(true);
+
+    // requesting notifications permissions
+    async function requestPermissions() {
+      try {
+        const perm = await LocalNotifications.requestPermissions();
+        console.log("Permission:", perm);
+      } catch (err) {
+        console.error("Error requesting permission:", err);
+      }
+    }
+    requestPermissions();
   }, []);
 
   useEffect(() => {

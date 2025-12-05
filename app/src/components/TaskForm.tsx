@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import {createGoogleEvent} from "../utils/CreateGoogleEvent";
+import { createGoogleEvent } from "../utils/CreateGoogleEvent";
 import {
   Select,
   SelectContent,
@@ -32,6 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { storage } from "../utils/storage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MiniUploadCard } from "./UploadDocumentForm";
+import { AddReminderDialog } from "./AddReminderDialog";
+import { scheduleNotification } from "../utils/notifications";
 
 interface TaskFormProps {
   task?: Task;
@@ -91,8 +93,8 @@ export function TaskForm({
   );
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(date);
-  const [hours, setHours] = useState(9);
-  const [minutes, setMinutes] = useState(0);
+  const [hours, setHours] = useState<number | string>(9);
+  const [minutes, setMinutes] = useState<number | string>(0);
   const [frequency, setFrequency] = useState<
     "once" | "daily" | "weekly" | "monthly" | "custom"
   >("once");
@@ -146,7 +148,7 @@ export function TaskForm({
         previewUri: f.type?.startsWith("image/") ? dataUrl : undefined,
         addedAt: new Date(),
       };
-      setFormTask(prev => ({
+      setFormTask((prev) => ({
         ...prev,
         attachments: [...(prev.attachments || []), att],
       }));
@@ -157,16 +159,18 @@ export function TaskForm({
 
   /*XXX Add a thing that adds Documents on save*/
 
-  const [addToGoogle, setAddToGoogle] = useState<boolean>(() => !!localStorage.getItem("google_access_token"));
-  useEffect(()=> {
-    const onStorage = (storeEvent: StorageEvent) =>{
-      if(storeEvent.key === "google_access_token"){
+  const [addToGoogle, setAddToGoogle] = useState<boolean>(
+    () => !!localStorage.getItem("google_access_token")
+  );
+  useEffect(() => {
+    const onStorage = (storeEvent: StorageEvent) => {
+      if (storeEvent.key === "google_access_token") {
         setAddToGoogle(!!storeEvent.newValue);
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []); 
+  }, []);
   useEffect(() => {
     if (task) {
       setFormTask(task);
@@ -189,7 +193,8 @@ export function TaskForm({
       const b = (formTask.attachments || []) as DocumentAttachment[];
       if (a.length !== b.length) return false;
       for (let i = 0; i < a.length; i++) {
-        const ai = a[i], bi = b[i];
+        const ai = a[i],
+          bi = b[i];
         if ((ai.id || ai.uri) !== (bi.id || bi.uri)) return false;
       }
       return true;
@@ -198,7 +203,6 @@ export function TaskForm({
     else setEditMode(false);
   }, [formTask]);
 
-  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -228,23 +232,23 @@ export function TaskForm({
 
     // If the user already has google calendar access and has token enabled for this task
     (async () => {
-      try{
+      try {
         const token = localStorage.getItem("google_access_token");
-        if(!token || !addToGoogle) return;
+        if (!token || !addToGoogle) return;
 
         await createGoogleEvent({
           title: formTask.title.trim(),
           description: formTask.description.trim(),
           date: formTask.date,
-        // categoryId: formTask.categoryId,
+          // categoryId: formTask.categoryId,
           //notes: formTask.notes.trim(),
           //attachments: formTask.attachments,
           //reminders: formTask.reminders,
-          endDate: (formTask as any).endDate ?? undefined, 
+          endDate: (formTask as any).endDate ?? undefined,
           allDay: Boolean((formTask as any).allDay),
           location: (formTask as any).location ?? "",
         });
-      }catch (err){
+      } catch (err) {
         console.error("Failed to create Google Calendar event:", err);
       }
     })();
@@ -257,7 +261,7 @@ export function TaskForm({
     setFormTask({ ...formTask, attachments: filteredAttachments });
   };
 
-  const addReminder = (
+  const addReminder = async (
     time: Date,
     frequency: "once" | "daily" | "weekly" | "monthly" | "custom"
   ) => {
@@ -268,19 +272,29 @@ export function TaskForm({
       enabled: true,
     };
     setFormTask({ ...formTask, reminders: [...reminders, newReminder] });
+    await scheduleNotification(
+      formTask.title,
+      formTask.description,
+      frequency,
+      time
+    );
   };
 
-  const handleAddReminder = () => {
+  const handleAddReminder = async () => {
+    if (typeof hours == "string" || typeof minutes == "string") return;
     const reminderTime = new Date(selectedDate);
     reminderTime.setHours(hours);
     reminderTime.setMinutes(minutes);
-    addReminder(reminderTime, frequency);
+    await addReminder(reminderTime, frequency);
     setShowAddReminder(false);
     // Reset form
     setSelectedDate(date);
     setHours(9);
     setMinutes(0);
     setFrequency("once");
+
+    // await scheduleNotification(title, description, frequency, reminderTime);
+    // setReminders([...reminders, newReminder]);
   };
 
   const getFrequencyLabel = (frequency: string) => {
@@ -399,7 +413,7 @@ export function TaskForm({
                   <Calendar
                     mode="single"
                     selected={formTask?.date}
-                    onSelect={(newDate:any) =>
+                    onSelect={(newDate: any) =>
                       newDate && setFormTask({ ...formTask, date: newDate })
                     }
                   />
@@ -494,7 +508,7 @@ export function TaskForm({
                             <Calendar
                               mode="single"
                               selected={selectedDate}
-                              onSelect={(newDate:any) =>
+                              onSelect={(newDate: any) =>
                                 newDate && setSelectedDate(newDate)
                               }
                             />
@@ -518,9 +532,12 @@ export function TaskForm({
                               max="23"
                               value={hours}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val) && val >= 0 && val <= 23) {
-                                  setHours(val);
+                                const val = e.target.value;
+                                if (
+                                  val === "" ||
+                                  (/^\d+$/.test(val) && Number(val) <= 59)
+                                ) {
+                                  setHours(val === "" ? "" : Number(val));
                                 }
                               }}
                               className="h-10 text-center"
@@ -534,9 +551,12 @@ export function TaskForm({
                               max="59"
                               value={minutes}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val) && val >= 0 && val <= 59) {
-                                  setMinutes(val);
+                                const val = e.target.value;
+                                if (
+                                  val === "" ||
+                                  (/^\d+$/.test(val) && Number(val) <= 59)
+                                ) {
+                                  setMinutes(val === "" ? "" : Number(val));
                                 }
                               }}
                               className="h-10 text-center"
@@ -704,7 +724,7 @@ export function TaskForm({
                 <Checkbox
                   id="saveAsTemplate"
                   checked={saveAsTemplate}
-                  onCheckedChange={(checked:any) =>
+                  onCheckedChange={(checked: any) =>
                     setSaveAsTemplate(checked as boolean)
                   }
                 />
@@ -740,16 +760,23 @@ export function TaskForm({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Checkbox
-                id="addToGoogle"
-                checked={addToGoogle}
-                onCheckedChange={(checked: any) => setAddToGoogle(checked as boolean)}
+                  id="addToGoogle"
+                  checked={addToGoogle}
+                  onCheckedChange={(checked: any) =>
+                    setAddToGoogle(checked as boolean)
+                  }
                 />
-                <Label htmlFor="addToGoogle" className="text-sm text-[#312e81] cursor-pointer">
+                <Label
+                  htmlFor="addToGoogle"
+                  className="text-sm text-[#312e81] cursor-pointer"
+                >
                   Add to Google Calendar
                 </Label>
               </div>
               {!localStorage.getItem("google_access_token") && (
-                <span className="text-xs text-[#4c4799]">Connect in Settings to enable</span>
+                <span className="text-xs text-[#4c4799]">
+                  Connect in Settings to enable
+                </span>
               )}
             </div>
           </div>
@@ -808,7 +835,9 @@ export function TaskForm({
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="truncate">{previewName || "Preview"}</DialogTitle>
+            <DialogTitle className="truncate">
+              {previewName || "Preview"}
+            </DialogTitle>
           </DialogHeader>
 
           {previewSrc ? (
@@ -825,8 +854,13 @@ export function TaskForm({
                 className="w-full h-[70vh] rounded border"
               >
                 <div className="text-sm text-[#4C4799] p-3">
-                  PDF preview not supported. 
-                  <a href={previewSrc} target="_blank" rel="noreferrer" className="underline">
+                  PDF preview not supported.
+                  <a
+                    href={previewSrc}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
                     Open in new tab
                   </a>
                 </div>
@@ -841,16 +875,22 @@ export function TaskForm({
               <div className="text-sm text-[#4C4799]">
                 No inline preview available.{" "}
                 {previewSrc.startsWith("data:") && (
-                  <a href={previewSrc} download className="underline">Download</a>
+                  <a href={previewSrc} download className="underline">
+                    Download
+                  </a>
                 )}
               </div>
             )
           ) : (
-            <div className="text-sm text-[#4C4799]">Unable to load preview.</div>
+            <div className="text-sm text-[#4C4799]">
+              Unable to load preview.
+            </div>
           )}
 
           <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

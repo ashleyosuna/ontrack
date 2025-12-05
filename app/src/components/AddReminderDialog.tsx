@@ -1,56 +1,89 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Calendar } from './ui/calendar';
-import { format } from 'date-fns';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
+import { scheduleNotification } from "../utils/notifications";
 
 interface AddReminderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (date: Date, frequency: 'once' | 'daily' | 'weekly' | 'monthly' | 'custom') => void;
-  defaultDate?: Date;
+  onAdd: (boolean) => void;
+  // onAdd: (
+  //   date: Date,
+  //   frequency: "once" | "daily" | "weekly" | "monthly" | "custom"
+  // ) => void;
+  // onAdd: () => void;
+  defaultHour: number;
+  defaultMinute: number;
 }
 
 export function AddReminderDialog({
   open,
   onOpenChange,
   onAdd,
-  defaultDate = new Date(),
+  // defaultDate = new Date(),
+  defaultHour,
+  defaultMinute,
 }: AddReminderDialogProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
-  const [hours, setHours] = useState(9);
-  const [minutes, setMinutes] = useState(0);
-  const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly' | 'monthly' | 'custom'>('once');
+  // const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
+  const [hours, setHours] = useState<number | string>(defaultHour);
+  const [minutes, setMinutes] = useState<number | string>(defaultMinute);
+  const [frequency, setFrequency] = useState<
+    "once" | "daily" | "weekly" | "monthly" | "custom"
+  >("once");
 
-  const handleAdd = () => {
-    const reminderTime = new Date(selectedDate);
+  const handleAdd = async () => {
+    if (typeof hours == "string" || typeof minutes == "string") return;
+    const reminderTime = new Date();
     reminderTime.setHours(hours);
     reminderTime.setMinutes(minutes);
-    onAdd(reminderTime, frequency);
+    // onAdd(reminderTime, frequency);
+    await scheduleNotification(
+      "One small step today keeps you OnTrack. Take a quick look?",
+      "",
+      "daily",
+      reminderTime
+    );
+    onAdd(true);
     onOpenChange(false);
     // Reset form
-    setSelectedDate(defaultDate);
-    setHours(9);
-    setMinutes(0);
-    setFrequency('once');
+    // setSelectedDate(defaultDate);
+    // setHours(defaultHour);
+    // setMinutes(defaultMinute);
+    setFrequency("once");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-[#312E81]">Add Reminder</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#312E81]">
+            Add a Daily Reminder
+          </DialogTitle>
+          {/* <DialogDescription>
             Set when you want to be reminded about this task
-          </DialogDescription>
+          </DialogDescription> */}
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Calendar */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label className="text-sm text-[#312E81]">Date</Label>
             <div className="border rounded-lg p-3 bg-gray-50">
               <Calendar
@@ -60,7 +93,7 @@ export function AddReminderDialog({
                 className="rounded-md"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Time */}
           <div className="space-y-2">
@@ -73,9 +106,12 @@ export function AddReminderDialog({
                   max="23"
                   value={hours}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 0 && val <= 23) {
-                      setHours(val);
+                    const val = e.target.value;
+                    if (
+                      val === "" ||
+                      (/^\d+$/.test(val) && Number(val) <= 59)
+                    ) {
+                      setHours(val === "" ? "" : Number(val));
                     }
                   }}
                   className="h-12 text-center"
@@ -89,9 +125,12 @@ export function AddReminderDialog({
                   max="59"
                   value={minutes}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 0 && val <= 59) {
-                      setMinutes(val);
+                    const val = e.target.value;
+                    if (
+                      val === "" ||
+                      (/^\d+$/.test(val) && Number(val) <= 59)
+                    ) {
+                      setMinutes(val === "" ? "" : Number(val));
                     }
                   }}
                   className="h-12 text-center"
@@ -103,13 +142,13 @@ export function AddReminderDialog({
           </div>
 
           {/* Frequency */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label className="text-sm text-[#312E81]">Frequency</Label>
             <Select
               value={frequency}
-              onValueChange={(value: 'once' | 'daily' | 'weekly' | 'monthly' | 'custom') => 
-                setFrequency(value)
-              }
+              onValueChange={(
+                value: "once" | "daily" | "weekly" | "monthly" | "custom"
+              ) => setFrequency(value)}
             >
               <SelectTrigger className="h-12">
                 <SelectValue />
@@ -119,17 +158,16 @@ export function AddReminderDialog({
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="custom">Custom (Multiple per day)</SelectItem>
+                <SelectItem value="custom">
+                  Custom (Multiple per day)
+                </SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
