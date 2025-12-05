@@ -1116,7 +1116,6 @@ useEffect(() => {
             onNavigateToTaskDetails={navigateToEditTask}
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
-            onSuggestionFeedback={handleSuggestionFeedback}
             onUpdateTask={handleUpdateTask}
             onCreateTaskFromSuggestion={createTaskFromSuggestion}
             onCreateTemplateFromSuggestion={createTemplateFromSuggestion}
