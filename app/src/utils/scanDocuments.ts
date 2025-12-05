@@ -77,30 +77,36 @@ export async function suggestFromTextLocal(text: string, categoryNames?: string[
   const catList = (categoryNames && categoryNames.length ? categoryNames : ["Personal"]).join(", ");
 
   const prompt = `
-You are extracting structured task metadata.
+Extract structured task metadata.
 
 Available categories (choose exactly one; return its exact name as "categoryHint"): ${catList}
 
-Return ONLY compact JSON with keys:
-"title", "description", "dueDateISO" (ISO 8601 or null),
-"reminders" (array of short reminder strings),
-"notes", "categoryHint".
+Return ONLY ONE valid JSON object. No prose, no markdown, no backticks.
+Start with "{" and end with "}". Keys (all required):
+- "title": string (<= 80 chars, non-empty)
+- "description": string (2–3 concise sentences, <= 400 chars, non-empty)
+- "dueDateISO": ISO 8601 string or null (infer from the document if possible)
+- "reminders": array of 2–4 short strings (e.g., "1 day before", "9am day of")
+- "notes": string with 2–5 bullet points separated by newlines (non-empty)
+- "categoryHint": one exact category name from the list above
 
-If no clear due date, set "dueDateISO" to null (frontend will fallback to tomorrow).
-Prefer concise title (<= 80 chars), description (<= 400 chars).
+Example:
+{"title":"Project kickoff","description":"Schedule the first meeting with the team. Align on scope and deliverables.","dueDateISO":"2025-03-10T09:00:00.000Z","reminders":["1 day before","9am day of"],"notes":"• Prepare agenda\n• Invite stakeholders","categoryHint":"Personal"}
 
 Document:
-${text.slice(0, 3500)}
+${text.slice(0, 3000)}
 `.trim();
+
+  console.log("[LLM] Prompt:", prompt);
 
   console.log("[LLM] Starting generation. Prompt chars:", prompt.length);
   const tStart = performance.now();
 
-  const TIMEOUT_MS = 25000;
+  const TIMEOUT_MS = 50000;
   const generation = gen(prompt, {
-    max_new_tokens: 256,
-    temperature: 0.1,
-    do_sample: false,
+    max_new_tokens: 512,
+    temperature: 0.3,
+    do_sample: true,
     // T5 returns the full string; we parse JSON below
   });
 
@@ -122,6 +128,7 @@ ${text.slice(0, 3500)}
     ? String(out[0]?.generated_text || "")
     : String((out as any)?.generated_text || out);
   console.log("[LLM] Raw output length:", content.length);
+  console.log("[LLM] Raw output:", content);
 
   const parsed = parseFirstJsonObject(content);
   console.log("[LLM] Parsed suggestion:", parsed);

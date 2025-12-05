@@ -215,9 +215,9 @@ export default function App() {
     setIsInitialized(true);
   }, []);
 
+
 useEffect(() => {
   if (!isInitialized || !userProfile) return;
-
   const now = new Date();
 
   // First-time build
@@ -236,6 +236,8 @@ useEffect(() => {
       const hero: Suggestion[] = [
         {
           id: "demo-hero-oil-change",
+          title: "Oil change",
+          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
           message:
             "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
           type: "action",
@@ -245,6 +247,8 @@ useEffect(() => {
         },
         {
           id: "demo-hero-timing-belt",
+          title: "Check timing belt",
+          categoryId: categories.find(c => c.name === "Vehicle")?.id ?? categories[0]?.id ?? "",
           message:
             "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
           type: "tip",
@@ -254,6 +258,8 @@ useEffect(() => {
         },
         {
           id: "demo-hero-health-annual",
+          title: "Annual health and dental check",
+          categoryId: categories.find(c => c.name === "Health")?.id ?? categories[0]?.id ?? "",
           message:
             "Quick win: most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
           type: "tip",
@@ -263,6 +269,8 @@ useEffect(() => {
         },
         {
           id: "demo-hero-warranty-quick-win",
+          title: "Save receipt and serial for warranties",
+          categoryId: categories.find(c => c.name === "Warranties")?.id ?? categories[0]?.id ?? "",
           message:
             "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
           type: "action",
@@ -275,7 +283,7 @@ useEffect(() => {
       // Optional: if the underlying pool ever contains text-duplicates of these,
       // you could filter them out by message, but safest is to just leave them.
       const combined = [...hero, ...shuffle(fullPool)];
-
+      
       setSuggestions(combined.slice(0, 6));
       setSuggestionPool(combined.slice(6));
       return;
@@ -325,8 +333,7 @@ useEffect(() => {
   isInitialized,
 ]);
 
-
-    // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Daily reminder notification (toast-based)
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -417,7 +424,6 @@ useEffect(() => {
       ...cat,
       id: `category-${Date.now()}-${index}`,
     }));
-
     setUserProfile(profile);
     setCategories(initialCategories);
     storage.saveUserProfile(profile);
@@ -458,6 +464,7 @@ useEffect(() => {
     storage.saveCategories(initialCategories);
     storage.saveTasks(demoTasks);
 
+    // Navigate to dashboard
     setCurrentView("dashboard");
     toast.success("Welcome to Demo Mode!");
   };
@@ -466,8 +473,6 @@ useEffect(() => {
   // Demo mode toggle in settings
   // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
-  // If there's no profile yet and we're turning demo OFF,
-  // just send them to onboarding.
     if (!userProfile && !enabled) {
       setCurrentView("onboarding");
       return;
@@ -943,6 +948,70 @@ useEffect(() => {
     }
   };
 
+  const createTaskFromSuggestion = (s: Suggestion) => {
+    const title = s.title;
+    const description = s.message;
+    const categoryId = s.categoryId ?? categories[0]?.id ?? "";
+
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      title: title,
+      description: description,
+      categoryId: categoryId,
+      notes: "",
+      attachments: [],
+      reminders: [],
+      completed: false,
+      date: new Date(),
+      createdAt: new Date(),
+    };
+
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+
+    const updatedSuggestions = suggestions.map((sg) =>
+      sg.id === s.id ? { ...sg, dismissed: true } : sg
+    );
+    setSuggestions(updatedSuggestions);
+    storage.saveSuggestions(updatedSuggestions);
+
+
+    setSelectedTaskId(newTask.id);
+    setCurrentView("edit-task");
+  }
+
+  const createTemplateFromSuggestion = (s: Suggestion) => {
+    const title = s.title;
+    const description = s.message;
+    const categoryId = s.categoryId ?? categories[0]?.id ?? "";
+
+    const newTemplate: Template = {
+      id: `template-${Date.now()}`,
+      name: s.title,
+      categoryId,
+      title: s.title,
+      description: s.message,
+      notes: "",
+      reminders: [],
+      isPreset: false,
+      createdAt: new Date(),
+    };
+
+    const updatedTemplates = [...templates, newTemplate];
+    setTemplates(updatedTemplates);
+    storage.saveTemplates(updatedTemplates);
+
+    const updatedSuggestions = suggestions.map((sg) =>
+      sg.id === s.id ? { ...sg, dismissed: true } : sg
+    );
+    setSuggestions(updatedSuggestions);
+    storage.saveSuggestions(updatedSuggestions);
+
+    setSelectedTemplateId(newTemplate.id);
+    setCurrentView("edit-template");
+  }
+
   // Wait for initialization to complete
   if (!isInitialized) {
     return (
@@ -967,40 +1036,39 @@ useEffect(() => {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
-  // // Show onboarding if not completed
+  // Show onboarding if not completed
   // if (!userProfile?.hasCompletedOnboarding) {
   //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
   // }
   // --- Welcome Screen ---
-if (currentView === 'welcome') {
-  return (
-    <WelcomePage
-      onGetStarted={() => setCurrentView('onboarding')}
-      onDemoMode={handleDemoMode}
-    />
-  );
-}
+  if (currentView === 'welcome') {
+    return (
+      <WelcomePage
+        onGetStarted={() => setCurrentView('onboarding')}
+        onDemoMode={handleDemoMode}
+      />
+    );
+  }
 
-if (currentView === 'loading') {
-  return (
-    <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
-  )
-}
+  if (currentView === 'loading') {
+    return (
+      <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
+    )
+  }
 
-// --- Onboarding Screen ---
-if (currentView === 'onboarding') {
-  return (
-    <Onboarding
-      onComplete={(data) => {
-        handleOnboardingComplete(data);
-        // setCurrentView('dashboard'); // go to dashboard after onboarding
-        setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
-      }}
-      onDemoMode={handleDemoMode}
-    />
-  );
-}
-
+  // --- Onboarding Screen ---
+  if (currentView === 'onboarding') {
+    return (
+      <Onboarding
+        onComplete={(data) => {
+          handleOnboardingComplete(data);
+          // setCurrentView('dashboard'); // go to dashboard after onboarding
+          setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
+        }}
+        onDemoMode={handleDemoMode}
+      />
+    );
+  }
 
   // Check if we're on a main view (for bottom nav)
   // const isMainView = [
@@ -1050,6 +1118,8 @@ if (currentView === 'onboarding') {
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
             onUpdateTask={handleUpdateTask}
+            onCreateTaskFromSuggestion={createTaskFromSuggestion}
+            onCreateTemplateFromSuggestion={createTemplateFromSuggestion}
           />
         )}
 
@@ -1138,6 +1208,7 @@ if (currentView === 'onboarding') {
             onSave={handleEditTask}
             onCancel={navigateToDashboard}
             onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
           />
         )}
 
@@ -1240,7 +1311,7 @@ if (currentView === 'onboarding') {
         />
       )} */}
 
-      {/* bottom navigation */}
+      {/* Bottom Navigation */}
       {isMainView && (
         <nav
           className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
@@ -1288,6 +1359,39 @@ if (currentView === 'onboarding') {
           </div>
         </nav>
       )}
+
+      {/* Floating Action Button */}
+      {(currentView === "dashboard" || currentView === "categories") && (
+        <button
+          onClick={() => navigateToAddTask()}
+          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">New Task</span>
+        </button>
+      )}
+
+      {/* Task Creation Mode Dialog */}
+      {/* {currentView === "pre-add-task" && (
+        <TaskCreationModeDialog
+          open={showModeDialog}
+          onOpenChange={setShowModeDialog}
+          onSelectMode={handleModeSelected}
+          onCancel={navigateToDashboard}
+        />
+      )} */}
+
+      {/* Template Selection Dialog
+      {currentView === "select-template" && (
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          categories={categories}
+          customTemplates={templates}
+          onSelectTemplate={handleTemplateSelected}
+          onDeleteTemplate={handleDeleteTemplate}
+        />
+      )} */}
     </div>
   );
 }

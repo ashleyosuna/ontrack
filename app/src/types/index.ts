@@ -68,7 +68,9 @@ export interface DocumentLink {
 
 export interface Suggestion {
   id: string;
+  title: string,
   message: string;
+  categoryId: string | undefined,
   type: "reminder" | "tip" | "action";
   relatedTaskId?: string;
   relevance: number;
