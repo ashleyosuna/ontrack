@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import WelcomePage from './components/WelcomeScreen';
-import LoadingPage from './components/LoadingScreen';
+import WelcomePage from "./components/WelcomeScreen";
+import LoadingPage from "./components/LoadingScreen";
 import { Onboarding } from "./components/Onboarding";
 import { Dashboard } from "./components/Dashboard";
 import { CategoryView } from "./components/CategoryView";
@@ -42,11 +42,15 @@ import {
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import CategoryTab from "./components/CategoryTab";
-import { getRandomDailyReminderMessage, hasNotificationOnDate } from "./utils/DailyReminder";
+import {
+  getRandomDailyReminderMessage,
+  hasNotificationOnDate,
+} from "./utils/DailyReminder";
 
-type View = 'welcome' 
-  | 'onboarding' 
-  | 'loading'
+type View =
+  | "welcome"
+  | "onboarding"
+  | "loading"
   | "dashboard"
   | "categories"
   | "category"
@@ -59,7 +63,7 @@ type View = 'welcome'
   | "pre-add-task"
   | "select-template"
   | "documents"
-  | "add-document-upload"
+  | "add-document-upload";
 
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
@@ -153,7 +157,7 @@ export default function App() {
 
     // First time user - don't auto-initialize, let them go through onboarding
     if (!profile) {
-      setCurrentView('welcome');
+      setCurrentView("welcome");
       setIsInitialized(true);
       return;
     }
@@ -215,144 +219,139 @@ export default function App() {
     setIsInitialized(true);
   }, []);
 
+  useEffect(() => {
+    if (!isInitialized || !userProfile) return;
+    const now = new Date();
 
-useEffect(() => {
-  if (!isInitialized || !userProfile) return;
-  const now = new Date();
+    // First-time build
+    if (suggestions.length === 0) {
+      let fullPool = buildSmartSuggestionPool(tasks, categories, userProfile, {
+        includeHiddenCategories: false,
+      });
 
-  // First-time build
-  if (suggestions.length === 0) {
-    let fullPool = buildSmartSuggestionPool(
-      tasks,
-      categories,
-      userProfile,
-      { includeHiddenCategories: false }
-    );
+      // -------------------------------------------------------------------
+      // ONBOARDING VIDEO CLAUSE:
+      // This is a clause for the video for onboarding profile. When
+      //  Warranties, Subscriptions, Health, Vehicle chosen -
+      //  force the first 4 smart suggestions.
+      // -------------------------------------------------------------------
+      const isOnboardingHeroProfile =
+        !userProfile.demoMode &&
+        Array.isArray(userProfile.preferredCategories) &&
+        userProfile.preferredCategories.length === DEMO_CATEGORY_NAMES.length &&
+        DEMO_CATEGORY_NAMES.every((name) =>
+          userProfile.preferredCategories.includes(name)
+        );
 
-    // -------------------------------------------------------------------
-    // ONBOARDING VIDEO CLAUSE:
-    // This is a clause for the video for onboarding profile. When
-    //  Warranties, Subscriptions, Health, Vehicle chosen -
-    //  force the first 4 smart suggestions.
-    // -------------------------------------------------------------------
-    const isOnboardingHeroProfile =
-      !userProfile.demoMode &&
-      Array.isArray(userProfile.preferredCategories) &&
-      userProfile.preferredCategories.length === DEMO_CATEGORY_NAMES.length &&
-      DEMO_CATEGORY_NAMES.every((name) =>
-        userProfile.preferredCategories.includes(name)
-      );
+      if (isOnboardingHeroProfile) {
+        const hero: Suggestion[] = [
+          {
+            id: "demo-hero-oil-change",
+            title: "Oil change",
+            categoryId:
+              categories.find((c) => c.name === "Vehicle")?.id ??
+              categories[0]?.id ??
+              "",
+            message:
+              "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
+            type: "action",
+            relevance: 100,
+            dismissed: false,
+            createdAt: now,
+          },
+          {
+            id: "demo-hero-timing-belt",
+            title: "Check timing belt",
+            categoryId:
+              categories.find((c) => c.name === "Vehicle")?.id ??
+              categories[0]?.id ??
+              "",
+            message:
+              "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
+            type: "tip",
+            relevance: 99,
+            dismissed: false,
+            createdAt: now,
+          },
+          {
+            id: "demo-hero-health-annual",
+            title: "Annual health and dental check",
+            categoryId:
+              categories.find((c) => c.name === "Health")?.id ??
+              categories[0]?.id ??
+              "",
+            message:
+              "Most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
+            type: "tip",
+            relevance: 98,
+            dismissed: false,
+            createdAt: now,
+          },
+          {
+            id: "demo-hero-warranty-quick-win",
+            title: "Save receipt and serial for warranties",
+            categoryId:
+              categories.find((c) => c.name === "Warranties")?.id ??
+              categories[0]?.id ??
+              "",
+            message:
+              "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
+            type: "action",
+            relevance: 97,
+            dismissed: false,
+            createdAt: now,
+          },
+        ];
 
-    if (isOnboardingHeroProfile) {
-      const hero: Suggestion[] = [
-        {
-          id: "demo-hero-oil-change",
-          title: "Oil change",
-          categoryId:
-            categories.find((c) => c.name === "Vehicle")?.id ??
-            categories[0]?.id ??
-            "",
-          message:
-            "When was the last time you had your oil changed? Might be time to give the car a spa treatment.",
-          type: "action",
-          relevance: 100,
-          dismissed: false,
-          createdAt: now,
-        },
-        {
-          id: "demo-hero-timing-belt",
-          title: "Check timing belt",
-          categoryId:
-            categories.find((c) => c.name === "Vehicle")?.id ??
-            categories[0]?.id ??
-            "",
-          message:
-            "If your vehicle is around 100,000 km or more, it’s a good time to check whether the timing belt has ever been replaced.",
-          type: "tip",
-          relevance: 99,
-          dismissed: false,
-          createdAt: now,
-        },
-        {
-          id: "demo-hero-health-annual",
-          title: "Annual health and dental check",
-          categoryId:
-            categories.find((c) => c.name === "Health")?.id ??
-            categories[0]?.id ??
-            "",
-          message:
-            "Most people benefit from a yearly doctor visit and a regular dentist appointment — consider adding tasks to keep those on your radar.",
-          type: "tip",
-          relevance: 98,
-          dismissed: false,
-          createdAt: now,
-        },
-        {
-          id: "demo-hero-warranty-quick-win",
-          title: "Save receipt and serial for warranties",
-          categoryId:
-            categories.find((c) => c.name === "Warranties")?.id ??
-            categories[0]?.id ??
-            "",
-          message:
-            "Quick win: whenever you buy an electronic device, snap a pic of the receipt and serial number and store it with the warranty — future you will thank you when something dies right before the warranty ends.",
-          type: "action",
-          relevance: 97,
-          dismissed: false,
-          createdAt: now,
-        },
-      ];
+        const combined = [...hero, ...shuffle(fullPool)];
+        setSuggestions(combined.slice(0, 6));
+        setSuggestionPool(combined.slice(6));
+        return;
+      }
 
-      const combined = [...hero, ...shuffle(fullPool)];
+      // ---------- Normal + Demo first-time path (no hardcoded demo) ----------
+      const combined = shuffle(fullPool);
       setSuggestions(combined.slice(0, 6));
       setSuggestionPool(combined.slice(6));
       return;
     }
 
-    // ---------- Normal + Demo first-time path (no hardcoded demo) ----------
-    const combined = shuffle(fullPool);
-    setSuggestions(combined.slice(0, 6));
-    setSuggestionPool(combined.slice(6));
-    return;
-  }
+    // -----------------------------------------------------
+    // Top up to 6 suggestions (demo + normal)
+    // -----------------------------------------------------
+    if (suggestions.length < 6) {
+      const needed = 6 - suggestions.length;
 
-  // -----------------------------------------------------
-  // Top up to 6 suggestions (demo + normal)
-  // -----------------------------------------------------
-  if (suggestions.length < 6) {
-    const needed = 6 - suggestions.length;
+      let refill = suggestionPool.slice(0, needed);
+      let newPool = suggestionPool.slice(needed);
 
-    let refill = suggestionPool.slice(0, needed);
-    let newPool = suggestionPool.slice(needed);
+      if (refill.length < needed) {
+        // Pool ran out → rebuild and EXPAND to include hidden categories
+        const rebuiltFullPool = buildSmartSuggestionPool(
+          tasks,
+          categories,
+          userProfile,
+          { includeHiddenCategories: true }
+        );
 
-    if (refill.length < needed) {
-      // Pool ran out → rebuild and EXPAND to include hidden categories
-      const rebuiltFullPool = buildSmartSuggestionPool(
-        tasks,
-        categories,
-        userProfile,
-        { includeHiddenCategories: true }
-      );
+        const rebuiltShuffled = shuffle(rebuiltFullPool);
 
-      const rebuiltShuffled = shuffle(rebuiltFullPool);
+        const extraNeeded = needed - refill.length;
+        refill = [...refill, ...rebuiltShuffled.slice(0, extraNeeded)];
+        newPool = rebuiltShuffled.slice(extraNeeded);
+      }
 
-      const extraNeeded = needed - refill.length;
-      refill = [...refill, ...rebuiltShuffled.slice(0, extraNeeded)];
-      newPool = rebuiltShuffled.slice(extraNeeded);
+      setSuggestions([...suggestions, ...refill]);
+      setSuggestionPool(newPool);
     }
-
-    setSuggestions([...suggestions, ...refill]);
-    setSuggestionPool(newPool);
-  }
-}, [
-  tasks,
-  categories,
-  userProfile,
-  suggestionPool,
-  suggestions,
-  isInitialized,
-]);
-
+  }, [
+    tasks,
+    categories,
+    userProfile,
+    suggestionPool,
+    suggestions,
+    isInitialized,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Daily reminder notification (toast-based)
@@ -425,9 +424,9 @@ useEffect(() => {
     age?: string;
     gender?: string;
   }) => {
-    const hiddenCategoryNames = DEFAULT_CATEGORIES
-      .map((c) => c.name)
-      .filter((name) => !data.preferredCategories.includes(name));
+    const hiddenCategoryNames = DEFAULT_CATEGORIES.map((c) => c.name).filter(
+      (name) => !data.preferredCategories.includes(name)
+    );
 
     const profile: UserProfile = {
       preferredCategories: data.preferredCategories,
@@ -452,11 +451,16 @@ useEffect(() => {
     toast.success("Welcome to OnTrack! 🎉");
   };
 
-  const DEMO_CATEGORY_NAMES = ["Subscriptions", "Health", "Warranties", "Vehicle"];
+  const DEMO_CATEGORY_NAMES = [
+    "Subscriptions",
+    "Health",
+    "Warranties",
+    "Vehicle",
+  ];
 
-  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES
-  .map((c) => c.name)
-  .filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
+  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES.map(
+    (c) => c.name
+  ).filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
 
   // ---------------------------------------------------------------------------
   // Demo mode from onboarding button
@@ -494,7 +498,7 @@ useEffect(() => {
   // Demo mode toggle in settings
   // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
-    if (!userProfile && !enabled) {
+    if (!userProfile) {
       setCurrentView("onboarding");
       return;
     }
@@ -522,7 +526,7 @@ useEffect(() => {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
-      setSuggestions([]);        // let demo logic rebuild them
+      setSuggestions([]); // let demo logic rebuild them
       setSuggestionPool([]);
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
@@ -543,8 +547,6 @@ useEffect(() => {
       toast.success("Demo mode disabled. Let’s set things up for you!");
     }
   };
-
-
 
   const handleAddTask = (
     taskData: Omit<Task, "id" | "createdAt">,
@@ -736,12 +738,12 @@ useEffect(() => {
   };
 
   const dismissSuggestion = (id: string) => {
-    const updated = suggestions.filter(s => s.id !== id);
+    const updated = suggestions.filter((s) => s.id !== id);
     setSuggestions(updated);
   };
 
   const snoozeSuggestion = (id: string) => {
-    const updated = suggestions.filter(s => s.id !== id);
+    const updated = suggestions.filter((s) => s.id !== id);
     setSuggestions(updated);
   };
   const handleDismissSuggestion = (
@@ -886,7 +888,9 @@ useEffect(() => {
     }
   };
 
-  const handleCreateTaskFromUpload = (taskData: Omit<Task, "id" | "createdAt">): string => {
+  const handleCreateTaskFromUpload = (
+    taskData: Omit<Task, "id" | "createdAt">
+  ): string => {
     const newID = `task-${Date.now()}`;
     const newTask: Task = {
       ...taskData,
@@ -927,7 +931,6 @@ useEffect(() => {
     setSelectedTaskId(taskId);
     setCurrentView("edit-task");
   };
-
 
   const navigateToEditTemplate = (templateId: string) => {
     setPreviousView(currentView);
@@ -996,10 +999,9 @@ useEffect(() => {
     setSuggestions(updatedSuggestions);
     storage.saveSuggestions(updatedSuggestions);
 
-
     setSelectedTaskId(newTask.id);
     setCurrentView("edit-task");
-  }
+  };
 
   const createTemplateFromSuggestion = (s: Suggestion) => {
     const title = s.title;
@@ -1030,7 +1032,7 @@ useEffect(() => {
 
     setSelectedTemplateId(newTemplate.id);
     setCurrentView("edit-template");
-  }
+  };
 
   // Wait for initialization to complete
   if (!isInitialized) {
@@ -1061,29 +1063,27 @@ useEffect(() => {
   //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
   // }
   // --- Welcome Screen ---
-  if (currentView === 'welcome') {
+  if (currentView === "welcome") {
     return (
       <WelcomePage
-        onGetStarted={() => setCurrentView('onboarding')}
+        onGetStarted={() => setCurrentView("onboarding")}
         onDemoMode={handleDemoMode}
       />
     );
   }
 
-  if (currentView === 'loading') {
-    return (
-      <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
-    )
+  if (currentView === "loading") {
+    return <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />;
   }
 
   // --- Onboarding Screen ---
-  if (currentView === 'onboarding') {
+  if (currentView === "onboarding") {
     return (
       <Onboarding
         onComplete={(data) => {
           handleOnboardingComplete(data);
           // setCurrentView('dashboard'); // go to dashboard after onboarding
-          setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
+          setCurrentView("loading"); // go to a loading screen that lasts 2 seconds before dashboard
         }}
         onDemoMode={handleDemoMode}
       />
@@ -1125,7 +1125,10 @@ useEffect(() => {
       {/* Main Content */}
       <main
         className="px-4 max-w-2xl mx-auto"
-        style={{ paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)", paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+        style={{
+          paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)",
+          paddingTop: "calc(var(--safe-area-inset-top) + 15px)",
+        }}
       >
         {currentView === "dashboard" && (
           <Dashboard
@@ -1218,7 +1221,6 @@ useEffect(() => {
             onNavigateToTasks={navigateToEditTask}
           />
         )}
-
 
         {currentView === "edit-task" && selectedTask && (
           <TaskForm
