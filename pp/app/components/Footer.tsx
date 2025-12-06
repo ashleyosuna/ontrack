@@ -17,7 +17,7 @@ export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200">
       {/* CTA Section */}
-      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 py-16">
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 py-16" id="waitlist">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-slate-900 mb-4 text-2xl font-bold">
             Ready to take control of your life tasks?
