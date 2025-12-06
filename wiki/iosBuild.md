@@ -1,15 +1,16 @@
 # Requirements
 
-- Have a build directory (can be done via npm run build)
 - Install XCode
 - Install CocoaPods
 
 # Steps
-
-1. npx cap sync
-2. npx cap open ios
-3. select your device
-4. click run and build button
+1. Navigate into the app directory
+2. Run npm i to ensure all required packages are installed.
+3. Run npm run build
+4. npx cap sync
+5. npx cap open ios
+6. select your device
+7. click run and build button
 
 # Notes
 
