@@ -5,12 +5,12 @@
 
 # Steps
 1. Navigate into the app directory
-2. Run npm i to ensure all required packages are installed.
-3. Run npm run build
-4. npx cap sync
-5. npx cap open ios
-6. select your device
-7. click run and build button
+2. Run "npm i" to ensure all required packages are installed.
+3. Run "npm run build"
+4. Run "npx cap sync"
+5. Run "npx cap open ios"
+6. select your device on XCode once it opens (top center bar)
+7. click run and build button (play button)
 
 # Notes
 
