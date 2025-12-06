@@ -1,17 +1,16 @@
-
-import { useState, useRef, useEffect } from 'react';
-import { Category, UserProfile, Template } from '../types';
-import { CategoryIcon } from './CategoryIcon';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { Switch } from './ui/switch';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { ArrowLeft, Plus, Trash2, FileText, Edit } from 'lucide-react';
-import { DEFAULT_CATEGORIES } from '../types';
-import { Separator } from './ui/separator';
-import { createGoogleEvent } from '../utils/CreateGoogleEvent';
+import { useState, useRef, useEffect } from "react";
+import { Category, UserProfile, Template } from "../types";
+import { CategoryIcon } from "./CategoryIcon";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { ArrowLeft, Plus, Trash2, FileText, Edit } from "lucide-react";
+import { DEFAULT_CATEGORIES } from "../types";
+import { Separator } from "./ui/separator";
+import { createGoogleEvent } from "../utils/CreateGoogleEvent";
 import {
   Select,
   SelectContent,
@@ -29,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import { AddReminderDialog } from "./AddReminderDialog";
 // import Icon from "./Icons";
 // import { getIconComponent } from "./CategoryIcon";
 
@@ -81,6 +81,19 @@ export function Settings({
     "Package",
   ];
 
+  const dailyReminderTime = userProfile.dailyReminderTime ?? "09:00";
+  // const defaultHour = dailyReminderTime.split(":")
+  const [rawHour = "09", rawMinute = "00"] = dailyReminderTime.split(":");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  const hourNum = Number(rawHour);
+  const minute = rawMinute.padStart(2, "0");
+
+  const isPM = hourNum >= 12;
+  let displayHourNum = hourNum % 12;
+  if (displayHourNum === 0) displayHourNum = 12;
+  const displayHour = displayHourNum.toString().padStart(2, "0");
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [categoryToDelete, setCategoryToDelete] = useState<{
@@ -88,6 +101,7 @@ export function Settings({
     name: string;
   } | null>(null);
   const [showDemoModeDialog, setShowDemoModeDialog] = useState(false);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
 
   const customCategories = categories.filter((c) => c.isCustom);
   const predefinedCategories = categories.filter((c) => !c.isCustom);
@@ -198,7 +212,7 @@ export function Settings({
     setShowDemoModeDialog(false);
     onToggleDemoMode(true);
   };
-  const customTemplates = templates.filter(t => !t.isPreset);
+  const customTemplates = templates.filter((t) => !t.isPreset);
   // CSV conversion helper -> transforms every value into a csv compatible string
   const csvEscape = (value: any) => {
     if (value == null) return "";
@@ -209,59 +223,67 @@ export function Settings({
     return s;
   };
 
-  // transforms the value into a compatible Date format 
+  // transforms the value into a compatible Date format
   const toDate = (value: any): Date | null => {
-    if(!value) return null;
-    if(value instanceof Date) return value;
+    if (!value) return null;
+    if (value instanceof Date) return value;
     const dateInst = new Date(value);
     return isNaN(dateInst.getTime()) ? null : dateInst;
   };
 
   const formatDateForCSV = (date: Date | null) => {
-    if(!date) return "";
+    if (!date) return "";
 
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
     const yyyy = date.getFullYear();
-    
+
     return `${mm}/${dd}/${yyyy}`;
-    
-  }
+  };
 
   const formatTimeForCSV = (date: Date | null) => {
-    if(!date) return "";
+    if (!date) return "";
     let hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12;
     hours = hours ? hours : 12; // the hour '0' should be '12'
     return `${hours}:${minutes} ${ampm}`;
-  }
-  const isAllDayEvent = (date: Date |null) => {
-    if(!date) return false;
+  };
+  const isAllDayEvent = (date: Date | null) => {
+    if (!date) return false;
     return date.getHours() === 0 && date.getMinutes() === 0;
-  }
+  };
 
   const exportTasksToGoogleCalendarCSV = (taskList: any[]) => {
-    if(!taskList || taskList.length === 0){
+    if (!taskList || taskList.length === 0) {
       alert("No tasks to export to CSV");
       return;
     }
     const headers = [
-      "Subject", 
-      "Start Date", 
-      "Start Time", 
-      "End Date", 
-      "End Time", 
-      "All Day Event", 
-      "Description", 
-      "Location", 
+      "Subject",
+      "Start Date",
+      "Start Time",
+      "End Date",
+      "End Time",
+      "All Day Event",
+      "Description",
+      "Location",
       "Private",
     ];
     const rows = taskList.map((task) => {
       const title = task.title ?? task.name ?? "Task";
-      const description = (task.description ?? task.notes ?? "").toString().replace(/\r?\n/g, " ");
-      const start = toDate(task.startDate ?? task.start ?? task.date ?? task.due ?? task.dueDate ?? task.createdAt);
+      const description = (task.description ?? task.notes ?? "")
+        .toString()
+        .replace(/\r?\n/g, " ");
+      const start = toDate(
+        task.startDate ??
+          task.start ??
+          task.date ??
+          task.due ??
+          task.dueDate ??
+          task.createdAt
+      );
       const end = toDate(task.endDate ?? task.end ?? null) ?? start;
       const allDay = isAllDayEvent(start);
       const startDate = formatDateForCSV(start);
@@ -272,11 +294,11 @@ export function Settings({
 
       return [
         csvEscape(title),
-        startDate, 
-        startTime, 
-        endDate, 
-        endTime, 
-        allDay ? "True" : "False", 
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        allDay ? "True" : "False",
         csvEscape(description),
         csvEscape(location),
         task.private ? "True" : "False",
@@ -288,7 +310,7 @@ export function Settings({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ontrack-tasks-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `ontrack-tasks-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -296,29 +318,31 @@ export function Settings({
   };
 
   const exportAllTasksToGC = async () => {
-    if(!hasGoogleToken){
+    if (!hasGoogleToken) {
       alert("Please connect to Google Calendar first.");
       return;
     }
-    if(!tasks || tasks.length ==0){
+    if (!tasks || tasks.length == 0) {
       alert("No tasks to sync.");
     }
     const results = await Promise.allSettled(
       tasks.map(async (t: any) => {
         const title = t.title ?? t.name ?? "Task";
         const description = (t.description ?? t.notes ?? "") as string;
-        const start = toDate(t.startDate ?? t.start ?? t.date ?? t.due ?? t.dueDate ?? t.createdAt);
+        const start = toDate(
+          t.startDate ?? t.start ?? t.date ?? t.due ?? t.dueDate ?? t.createdAt
+        );
         const end = toDate(t.endDate ?? t.end ?? null) ?? start;
         const allDay = t.allDay ?? isAllDayEvent(start);
         const location = t.location ?? "";
 
         return createGoogleEvent({
-          title, 
-          description, 
-          date:start, 
-          endDate: end, 
+          title,
+          description,
+          date: start,
+          endDate: end,
           allDay,
-          location
+          location,
         });
       })
     );
@@ -326,46 +350,72 @@ export function Settings({
     const successes = results.filter((r) => r.status === "fulfilled").length;
     const failures = results.filter((r) => r.status === "rejected");
 
-    if(failures.length == 0){
+    if (failures.length == 0) {
       alert(`Successfully synced ${successes} tasks to Google Calendar`);
-
-    }else{
+    } else {
       console.error("Some events failed:", failures);
-     // alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
-
+      // alert(`Synced ${successes} tasks; ${failures.length} failed. See console for more details.`);
     }
-  } ;
+  };
+
+  // delete all tasks
+  const clearAllTasks = () => {
+    const confirmDel = confirm(
+      "Delete all tasks stored locally? This action cannot be undone."
+    );
+    if (!confirmDel) return;
+
+    try {
+      const knownKeys = ["tasks", "ontrack_tasks", "ontrack-data", "app_tasks"];
+      knownKeys.forEach((k) => localStorage.removeItem(k));
+
+      //disconnect google calendar if possible
+      disconnectGoogleCalendar();
+    } catch (err) {
+      console.error("failed to clear tasks:", err);
+    }
+    //alert("All local tasks have been deleted. The app will reload to reflect changes.");
+
+    window.location.reload();
+  };
 
   //const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
-  const GOOGLE_CLIENT_ID = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) || "YOUR_GOOGLE_CLIENT_ID";
+  const GOOGLE_CLIENT_ID =
+    (typeof import.meta !== "undefined" &&
+      (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID) ||
+    "547529104184-kuu975onhf1b7sffurc0lk65cv44h50u.apps.googleusercontent.com";
   const tokenClientRef = useRef<any | null>(null);
-  const [hasGoogleToken, setHasGoogleToken] = useState<boolean>(() => !!localStorage.getItem("google_access_token"));
-  
-  const loadGsi = () => 
-    new Promise<void>((resolve) =>{
-      if((window as any).google) return resolve();
+  const [hasGoogleToken, setHasGoogleToken] = useState<boolean>(
+    () => !!localStorage.getItem("google_access_token")
+  );
+
+  const loadGsi = () =>
+    new Promise<void>((resolve) => {
+      if ((window as any).google) return resolve();
       const script = document.createElement("script");
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
-      script.onload  = () => resolve();
+      script.onload = () => resolve();
       document.head.appendChild(script);
     });
 
   const initTokenClient = async () => {
     await loadGsi();
-    if(!(window as any).google) throw new Error("gsi client not available");
-    if(!tokenClientRef.current){
-      tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, 
-        scope: "https://www.googleapis.com/auth/calendar.events", 
-        callback: (resp:any) => {
-          if(resp.error){
+    if (!(window as any).google) throw new Error("gsi client not available");
+    if (!tokenClientRef.current) {
+      tokenClientRef.current = (
+        window as any
+      ).google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "https://www.googleapis.com/auth/calendar.events",
+        callback: (resp: any) => {
+          if (resp.error) {
             console.error("google token error", resp);
             return;
           }
           localStorage.setItem("google_access_token", resp.access_token);
           setHasGoogleToken(true);
-          onUpdateProfile({ ...userProfile, calendarIntegration: true});
+          onUpdateProfile({ ...userProfile, calendarIntegration: true });
         },
       });
     }
@@ -373,10 +423,9 @@ export function Settings({
 
   const requestGooglePermission = async () => {
     try {
-      if(!tokenClientRef.current) await initTokenClient();
-      tokenClientRef.current.requestAccessToken({ prompt: "consent"});
-
-    }catch (err){
+      if (!tokenClientRef.current) await initTokenClient();
+      tokenClientRef.current.requestAccessToken({ prompt: "consent" });
+    } catch (err) {
       console.error("requestGooglePermission failed", err);
     }
   };
@@ -385,12 +434,8 @@ export function Settings({
     localStorage.removeItem("google_access_token");
     tokenClientRef.current = null;
     setHasGoogleToken(false);
-    onUpdateProfile({ ...userProfile, calendarIntegration: false});
+    onUpdateProfile({ ...userProfile, calendarIntegration: false });
   };
-  // track state when changes made in other tabs  
-  // useEffect(() => {
-  //   const onStorage = (stEvent: StorageEvent)
-  // })
   return (
     <div className="space-y-5">
       {/* Header - Remove back button on mobile settings */}
@@ -402,7 +447,7 @@ export function Settings({
       {/* Preferences */}
       <div className="bg-white rounded-2xl p-5 shadow-sm space-y-5">
         <h3 className="text-[#312E81]">Preferences</h3>
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label className="text-[#312E81]">Calendar Sync</Label>
@@ -423,26 +468,168 @@ export function Settings({
           </div>
 
           <Separator />
-
-          <div className="flex items-center justify-between py-2">
-            <div className="space-y-0.5">
-              <Label className="text-[#312E81]">Notifications</Label>
-              <p className="text-xs text-[#4C4799]">Get reminders and tips</p>
+          {/* Daily Reminder */}
+          <div className="space-y-2 py-2">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-[#312E81]">Daily Reminder</Label>
+                <p className="text-xs text-[#4C4799]">
+                  One gentle nudge per day when you have no other reminders
+                </p>
+              </div>
+              <Switch
+                checked={userProfile.notificationsEnabled}
+                onCheckedChange={(checked: boolean) => {
+                  onUpdateProfile({
+                    ...userProfile,
+                    notificationsEnabled: checked,
+                  });
+                  // setNotificationsEnabled(checked);
+                  // if (checked) setShowReminderDialog(true);
+                }}
+                className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-[#312E81]"
+              />
             </div>
-            <Switch
-              checked={userProfile.notificationsEnabled}
-              onCheckedChange={(checked: any) =>
-                onUpdateProfile({
-                  ...userProfile,
-                  notificationsEnabled: checked,
-                })
-              }
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-[#312E81]"
-            />
+
+            {userProfile.notificationsEnabled && (
+              <div>
+                <Button size="sm" onClick={() => setShowReminderDialog(true)}>
+                  Update
+                </Button>
+              </div>
+            )}
+
+            {/* Time row: label + hour/min + AM/PM, left-aligned */}
+            {/* <div
+              className={`flex items-center gap-3 pl-1 pr-1 ${
+                !userProfile.notificationsEnabled ? "opacity-50" : ""
+              }`}
+            >
+              <Label className="text-xs text-[#312E81]">Reminder time</Label>
+
+              <div className="flex items-center gap-1">
+                {/* Hours dropdown (1–12)
+                <Select
+                  disabled={!userProfile.notificationsEnabled}
+                  value={displayHour}
+                  onValueChange={(newDisplayHour) => {
+                    const newDisplayNum = Number(newDisplayHour);
+                    let hour24 = newDisplayNum % 12;
+                    if (isPM && hour24 !== 12) hour24 += 12;
+                    if (!isPM && hour24 === 12) hour24 = 0;
+                    const hour24Str = hour24.toString().padStart(2, "0");
+
+                    onUpdateProfile({
+                      ...userProfile,
+                      dailyReminderTime: `${hour24Str}:${minute}`,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-12 px-1 text-[11px] leading-none !h-5 !py-0 !min-h-0">
+                    <SelectValue placeholder="HH" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {Array.from({ length: 12 }).map((_, i) => {
+                      const h = (i + 1).toString().padStart(2, "0");
+                      return (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                <span className="text-xs text-[#4C4799]">:</span>
+                <Select
+                  disabled={!userProfile.notificationsEnabled}
+                  value={minute}
+                  onValueChange={(newMinute) => {
+                    const hourStr = hourNum.toString().padStart(2, "0");
+                    onUpdateProfile({
+                      ...userProfile,
+                      dailyReminderTime: `${hourStr}:${newMinute}`,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-12 px-1 text-[11px] leading-none !h-5 !py-0 !min-h-0">
+                    <SelectValue placeholder="MM" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {[
+                      "00",
+                      "05",
+                      "10",
+                      "15",
+                      "20",
+                      "25",
+                      "30",
+                      "35",
+                      "40",
+                      "45",
+                      "50",
+                      "55",
+                    ].map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="ml-1 inline-flex rounded-full border border-[#312E81] overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={!userProfile.notificationsEnabled}
+                    onClick={() => {
+                      if (!userProfile.notificationsEnabled || !isPM) return;
+                      let newHour24 = hourNum === 12 ? 0 : hourNum - 12;
+                      const hourStr24 = newHour24.toString().padStart(2, "0");
+                      onUpdateProfile({
+                        ...userProfile,
+                        dailyReminderTime: `${hourStr24}:${minute}`,
+                      });
+                    }}
+                    className={`px-2 py-0.5 text-[11px] rounded-r-full ${
+                      !isPM
+                        ? "bg-[#312E81] text-white"
+                        : "bg-transparent text-[#312E81]"
+                    } ${
+                      !userProfile.notificationsEnabled
+                        ? "cursor-default"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!userProfile.notificationsEnabled}
+                    onClick={() => {
+                      if (!userProfile.notificationsEnabled || isPM) return;
+                      let newHour24 = hourNum === 0 ? 12 : hourNum + 12;
+                      const hourStr24 = newHour24.toString().padStart(2, "0");
+                      onUpdateProfile({
+                        ...userProfile,
+                        dailyReminderTime: `${hourStr24}:${minute}`,
+                      });
+                    }}
+                    className={`px-2 py-0.5 text-[11px] rounded-r-full ${
+                      isPM
+                        ? "bg-[#312E81] text-white"
+                        : "bg-transparent text-[#312E81]"
+                    } ${
+                      !userProfile.notificationsEnabled
+                        ? "cursor-default"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    PM
+                  </button>
+                </div>
+              </div>
+            </div> */}
           </div>
-
           <Separator />
-
           <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label className="text-[#312E81]">Demo Mode</Label>
@@ -702,44 +889,63 @@ export function Settings({
         <Separator />
 
         <div className="space-y-2">
-          <Button variant="outline" className="w-full h-12" onClick={() => exportTasksToGoogleCalendarCSV(tasks)}>
+          <Button
+            variant="outline"
+            className="w-full h-12"
+            onClick={() => exportTasksToGoogleCalendarCSV(tasks)}
+          >
             Export Data
           </Button>
           <Button variant="outline" className="w-full h-12">
             Import Data
           </Button>
-          <Button variant="destructive" className="w-full h-12">
+          <Button
+            variant="destructive"
+            className="w-full h-12"
+            onClick={clearAllTasks}
+          >
             Clear All Data
           </Button>
         </div>
-      <div className="space-y-2">
-        {/*exports data in csv format for google calendar */}
-        {!hasGoogleToken ? (
-          <Button variant="outline" className="w-full h-12" onClick={requestGooglePermission}>
-            Connect Google Calendar
+        <div className="space-y-2">
+          {/*exports data in csv format for google calendar */}
+          {!hasGoogleToken ? (
+            <Button
+              variant="outline"
+              className="w-full h-12"
+              onClick={requestGooglePermission}
+            >
+              Connect Google Calendar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-12"
+                onClick={() => alert("Google Calendar connected")}
+              >
+                Google Connected
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-12"
+                onClick={disconnectGoogleCalendar}
+              >
+                Disconnect
+              </Button>
+            </div>
+          )}
+          {/* Sync all tasks to Google Calendar */}
+          <Button
+            variant="secondary"
+            className="w-full h-12"
+            onClick={exportAllTasksToGC}
+            disabled={!hasGoogleToken || !tasks || tasks.length === 0}
+          >
+            Sync All Tasks to Google Calendar
           </Button>
-        ) : (
-          <div className="flex gap-2">
-          <Button variant="outline" className="flex-1 h-12" onClick={() => alert("Google Calendar connected")}  >
-            Google Connected
-          </Button>
-          <Button variant="ghost" className="h-12" onClick={disconnectGoogleCalendar}>
-            Disconnect
-          </Button>
-          </div>
-        )}
-      {/* Sync all tasks to Google Calendar */}
-      <Button 
-        variant = "secondary" className="w-full h-12"
-        onClick={exportAllTasksToGC}
-        disabled={!hasGoogleToken || !tasks || tasks.length ===0}
-        >
-          Sync All Tasks to Google Calendar
-      </Button>
+        </div>
       </div>
-      
-    </div>
-
 
       {/* About */}
       <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -802,6 +1008,19 @@ export function Settings({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddReminderDialog
+        open={showReminderDialog}
+        onOpenChange={setShowReminderDialog}
+        onAdd={(success) =>
+          onUpdateProfile({
+            ...userProfile,
+            notificationsEnabled: success,
+          })
+        }
+        defaultHour={Number(rawHour)}
+        defaultMinute={Number(rawMinute)}
+      />
     </div>
   );
 }

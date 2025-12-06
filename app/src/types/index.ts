@@ -68,7 +68,9 @@ export interface DocumentLink {
 
 export interface Suggestion {
   id: string;
+  title: string,
   message: string;
+  categoryId: string | undefined,
   type: "reminder" | "tip" | "action";
   relatedTaskId?: string;
   relevance: number;
@@ -98,6 +100,8 @@ export interface UserProfile {
   calendarIntegration: boolean;
   notificationsEnabled: boolean;
   demoMode: boolean;
+  dailyReminderEnabled?: boolean;
+  dailyReminderTime?: string | null; 
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, "id">[] = [

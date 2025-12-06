@@ -4,6 +4,7 @@ import { CategoryIcon } from "./CategoryIcon";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { storage } from "../utils/storage";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,8 @@ interface DashboardProps {
     feedback: "more" | "less"
   ) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  onCreateTaskFromSuggestion: (s: Suggestion) => void;
+  onCreateTemplateFromSuggestion: (s: Suggestion) => void;
 }
 
 export function Dashboard({
@@ -60,6 +63,8 @@ export function Dashboard({
   onDismissSuggestion,
   onSuggestionFeedback,
   onUpdateTask,
+  onCreateTaskFromSuggestion,
+  onCreateTemplateFromSuggestion
 }: DashboardProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -71,7 +76,8 @@ export function Dashboard({
   };
 
   const upcomingTasks = tasks
-    .filter((task) => !task.completed && task.date >= new Date())
+      // include today even if earlier than now
+    .filter((task) => !task.completed && (!isPast(task.date) || isToday(task.date))) 
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 5);
 
@@ -129,6 +135,8 @@ export function Dashboard({
       <SmartSuggestions
         suggestions={activeSuggestions}
         onDismissSuggestion={onDismissSuggestion}
+        onCreateTaskFromSuggestion={onCreateTaskFromSuggestion}
+        onCreateTemplateFromSuggestion={onCreateTemplateFromSuggestion}
       />
       {/* {activeSuggestions.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-4 border border-blue-200">
@@ -361,7 +369,8 @@ export function Dashboard({
                       )}
                       <div className="flex items-center gap-1 text-xs text-[#4C4799]">
                         <Calendar className="h-3 w-3" />
-                        <span>{formatTaskDate(task.date)}</span>
+                        <span> {isToday(task.date)? `${("Today")} · ${format(task.date, "h:mm a")}`
+                        : format(task.date, "MMM d, yyyy")}</span>
                       </div>
                     </div>
                   </div>

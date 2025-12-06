@@ -7,3 +7,5 @@ project(':capacitor-camera').projectDir = new File('../node_modules/@capacitor/c
 
 include ':capacitor-plugin-safe-area'
 project(':capacitor-plugin-safe-area').projectDir = new File('../node_modules/capacitor-plugin-safe-area/android')
+include ':capacitor-local-notifications'
+project(':capacitor-local-notifications').projectDir = new File('../node_modules/@capacitor/local-notifications/android')

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import WelcomePage from './components/WelcomeScreen';
-import LoadingPage from './components/LoadingScreen';
+import WelcomePage from "./components/WelcomeScreen";
+import LoadingPage from "./components/LoadingScreen";
 import { Onboarding } from "./components/Onboarding";
 import { Dashboard } from "./components/Dashboard";
 import { CategoryView } from "./components/CategoryView";
@@ -42,10 +42,16 @@ import {
 import { generateDemoTasks } from "./utils/demoData";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import CategoryTab from "./components/CategoryTab";
+import {
+  getRandomDailyReminderMessage,
+  hasNotificationOnDate,
+} from "./utils/DailyReminder";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
-type View = 'welcome' 
-  | 'onboarding' 
-  | 'loading'
+type View =
+  | "welcome"
+  | "onboarding"
+  | "loading"
   | "dashboard"
   | "categories"
   | "category"
@@ -58,7 +64,77 @@ type View = 'welcome'
   | "pre-add-task"
   | "select-template"
   | "documents"
-  | "add-document-upload"
+  | "add-document-upload";
+
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function tieredShuffleSuggestions(pool: Suggestion[]): Suggestion[] {
+  const tier1: Suggestion[] = []; // task-based (have relatedTaskId)
+  const tier2: Suggestion[] = []; // high relevance (>= 8) non-task
+  const tier3: Suggestion[] = []; // medium relevance (5–7) non-task
+  const tier4: Suggestion[] = []; // everything else
+
+  for (const s of pool) {
+    const relevance = s.relevance ?? 0;
+
+    if (s.relatedTaskId) {
+      tier1.push(s);
+    } else if (relevance >= 8) {
+      tier2.push(s);
+    } else if (relevance >= 5) {
+      tier3.push(s);
+    } else {
+      tier4.push(s);
+    }
+  }
+
+  return [
+    ...shuffle(tier1),
+    ...shuffle(tier2),
+    ...shuffle(tier3),
+    ...shuffle(tier4),
+  ];
+}
+
+function buildSmartSuggestionPool(
+  tasks: Task[],
+  categories: Category[],
+  userProfile: UserProfile,
+  options?: { includeHiddenCategories?: boolean }
+): Suggestion[] {
+  const pool: Suggestion[] = [];
+
+  // Task-based suggestions (only if tasks exist)
+  if (categories.length > 0 && tasks.length > 0) {
+    const taskBased = generateSuggestions(tasks, categories);
+    pool.push(...taskBased);
+  }
+
+  // Category-based suggestions (even when there are no tasks)
+  if (categories.length > 0) {
+    const trackedCategoryNames = options?.includeHiddenCategories
+      ? Array.from(
+          new Set([
+            ...(userProfile.preferredCategories || []),
+            ...(userProfile.hiddenCategories || []),
+          ])
+        )
+      : userProfile.preferredCategories;
+
+    const categorySuggestions = generateCategoryBasedSuggestions(
+      categories,
+      trackedCategoryNames
+    );
+    pool.push(...categorySuggestions);
+  }
+  return pool;
+}
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -66,6 +142,7 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestionPool, setSuggestionPool] = useState<Suggestion[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -107,16 +184,11 @@ export default function App() {
     const savedDocuments = storage.getDocuments();
 
     // First time user - don't auto-initialize, let them go through onboarding
-    // if (!profile) {
-    //   setIsInitialized(true);
-    //   return;
-    // }
-    if (!profile || profile) {
-      setCurrentView('welcome');
+    if (!profile) {
+      setCurrentView("welcome");
       setIsInitialized(true);
       return;
     }
-
 
     // Migrate old profiles
     let migratedProfile = { ...profile };
@@ -173,51 +245,139 @@ export default function App() {
     setTemplates(savedTemplates);
     setDocuments(savedDocuments);
     setIsInitialized(true);
+
+    // requesting notifications permissions
+    async function requestPermissions() {
+      try {
+        const perm = await LocalNotifications.requestPermissions();
+        console.log("Permission:", perm);
+      } catch (err) {
+        console.error("Error requesting permission:", err);
+      }
+    }
+    requestPermissions();
   }, []);
 
-  // Generate task-based suggestions when tasks exist
   useEffect(() => {
-    if (categories.length > 0 && tasks.length > 0) {
-      const newSuggestions = generateSuggestions(tasks, categories);
-      // Merge with existing feedback
-      const mergedSuggestions = newSuggestions.map((newSug) => {
-        const existing = suggestions.find((s) => s.id === newSug.id);
-        return existing
-          ? {
-              ...newSug,
-              feedback: existing.feedback,
-              dismissed: existing.dismissed,
-            }
-          : newSug;
-      });
-      setSuggestions(mergedSuggestions);
-      storage.saveSuggestions(mergedSuggestions);
-    }
-  }, [tasks, categories]);
+    if (!isInitialized || !userProfile) return;
+    const now = new Date();
 
-  // Generate category-based suggestions when user has no tasks (normal mode only)
-  useEffect(() => {
-    if (
-      !userProfile?.demoMode &&
-      userProfile?.hasCompletedOnboarding &&
-      tasks.length === 0 &&
-      categories.length > 0 &&
-      isInitialized
-    ) {
-      const categorySuggestions = generateCategoryBasedSuggestions(
-        categories,
-        userProfile.preferredCategories
-      );
-      setSuggestions(categorySuggestions);
-      storage.saveSuggestions(categorySuggestions);
+  // First-time build
+  if (suggestions.length === 0) {
+    const fullPool = buildSmartSuggestionPool(
+      tasks,
+      categories,
+      userProfile,
+      { includeHiddenCategories: false }
+    );
+
+    const combined = tieredShuffleSuggestions(fullPool);
+    setSuggestions(combined.slice(0, 6));
+    setSuggestionPool(combined.slice(6));
+    return;
+  }
+
+    // -----------------------------------------------------
+    // Top up to 6 suggestions (demo + normal)
+    // -----------------------------------------------------
+    if (suggestions.length < 6) {
+      const needed = 6 - suggestions.length;
+
+      let refill = suggestionPool.slice(0, needed);
+      let newPool = suggestionPool.slice(needed);
+
+      if (refill.length < needed) {
+        // Pool ran out → rebuild and EXPAND to include hidden categories
+        const rebuiltFullPool = buildSmartSuggestionPool(
+          tasks,
+          categories,
+          userProfile,
+          { includeHiddenCategories: true }
+        );
+
+      const rebuiltTiered = tieredShuffleSuggestions(rebuiltFullPool);
+
+      const extraNeeded = needed - refill.length;
+      refill = [...refill, ...rebuiltTiered.slice(0, extraNeeded)];
+      newPool = rebuiltTiered.slice(extraNeeded);
+    }
+
+      setSuggestions([...suggestions, ...refill]);
+      setSuggestionPool(newPool);
     }
   }, [
-    userProfile?.demoMode,
-    userProfile?.hasCompletedOnboarding,
-    userProfile?.preferredCategories,
-    tasks.length,
-    categories.length,
+    tasks,
+    categories,
+    userProfile,
+    suggestionPool,
+    suggestions,
     isInitialized,
+  ]);
+
+  // ---------------------------------------------------------------------------
+  // Daily reminder notification (toast-based)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!userProfile?.notificationsEnabled || !userProfile.dailyReminderTime) {
+      return;
+    }
+
+    // Build a list of *other* notifications from task reminders
+    const notificationsForTasks = tasks.flatMap((task) =>
+      (task.reminders ?? [])
+        .filter((r) => r.enabled && r.time)
+        .map((r) => ({ time: r.time }))
+    );
+
+    const today = new Date();
+
+    // If there's *any* other notification scheduled today, skip the daily nudge
+    if (hasNotificationOnDate(notificationsForTasks, today)) {
+      return;
+    }
+
+    // Parse "HH:MM" from userProfile.dailyReminderTime (24h stored from Settings)
+    const [hourStr, minuteStr] = userProfile.dailyReminderTime.split(":");
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+      return;
+    }
+
+    const now = new Date();
+    const scheduled = new Date();
+    scheduled.setHours(hour, minute, 0, 0);
+
+    // If today's time has already passed, schedule for tomorrow instead
+    if (scheduled <= now) {
+      scheduled.setDate(scheduled.getDate() + 1);
+    }
+
+    const delay = scheduled.getTime() - now.getTime();
+
+    const timeoutId = window.setTimeout(() => {
+      // Re-check right before firing: if tasks now have notifications today, bail out
+      const stillHasOtherNotifications = hasNotificationOnDate(
+        notificationsForTasks,
+        new Date()
+      );
+      if (stillHasOtherNotifications) return;
+
+      const message = getRandomDailyReminderMessage(
+        suggestions // uses suggestion.message, ignores dismissed ones
+      );
+
+      toast(message);
+    }, delay);
+
+    // Clear timeout if dependencies change (time, tasks, suggestions, toggle)
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    userProfile?.notificationsEnabled,
+    userProfile?.dailyReminderTime,
+    tasks,
+    suggestions,
   ]);
 
   const handleOnboardingComplete = (data: {
@@ -225,9 +385,9 @@ export default function App() {
     age?: string;
     gender?: string;
   }) => {
-    const hiddenCategoryNames = DEFAULT_CATEGORIES
-      .map((c) => c.name)
-      .filter((name) => !data.preferredCategories.includes(name));
+    const hiddenCategoryNames = DEFAULT_CATEGORIES.map((c) => c.name).filter(
+      (name) => !data.preferredCategories.includes(name)
+    );
 
     const profile: UserProfile = {
       preferredCategories: data.preferredCategories,
@@ -245,7 +405,6 @@ export default function App() {
       ...cat,
       id: `category-${Date.now()}-${index}`,
     }));
-
     setUserProfile(profile);
     setCategories(initialCategories);
     storage.saveUserProfile(profile);
@@ -253,11 +412,16 @@ export default function App() {
     toast.success("Welcome to OnTrack! 🎉");
   };
 
-  const DEMO_CATEGORY_NAMES = ["Subscriptions", "Health", "Warranties", "Vehicle"];
+  const DEMO_CATEGORY_NAMES = [
+    "Subscriptions",
+    "Health",
+    "Warranties",
+    "Vehicle",
+  ];
 
-  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES
-  .map((c) => c.name)
-  .filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
+  const DEMO_HIDDEN_CATEGORY_NAMES = DEFAULT_CATEGORIES.map(
+    (c) => c.name
+  ).filter((name) => !DEMO_CATEGORY_NAMES.includes(name));
 
   // ---------------------------------------------------------------------------
   // Demo mode from onboarding button
@@ -286,29 +450,33 @@ export default function App() {
     storage.saveCategories(initialCategories);
     storage.saveTasks(demoTasks);
 
+    // Navigate to dashboard
     setCurrentView("dashboard");
     toast.success("Welcome to Demo Mode!");
   };
-
 
   // ---------------------------------------------------------------------------
   // Demo mode toggle in settings
   // ---------------------------------------------------------------------------
   const handleToggleDemoMode = (enabled: boolean) => {
-    if (!userProfile) return;
+    if (!userProfile) {
+      setCurrentView("onboarding");
+      return;
+    }
 
     if (enabled) {
-      const updatedProfile: UserProfile = {
-        ...userProfile,
-        demoMode: true,
-        preferredCategories: DEMO_CATEGORY_NAMES,
-        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
-      };
-
+      // --- TURNING DEMO MODE ON ---
       const allCategories = DEFAULT_CATEGORIES.map((cat, index) => ({
         ...cat,
         id: `category-${Date.now()}-${index}`,
       }));
+
+      const updatedProfile: UserProfile = {
+        ...userProfile!,
+        demoMode: true,
+        preferredCategories: DEMO_CATEGORY_NAMES,
+        hiddenCategories: DEMO_HIDDEN_CATEGORY_NAMES,
+      };
 
       const demoTasks = generateDemoTasks(allCategories);
 
@@ -319,19 +487,28 @@ export default function App() {
       storage.saveCategories(allCategories);
       storage.saveTasks(demoTasks);
 
+      setSuggestions([]); // let demo logic rebuild them
+      setSuggestionPool([]);
       setCurrentView("dashboard");
       toast.success("Demo mode enabled! Sample tasks loaded.");
     } else {
+      // --- TURNING DEMO MODE OFF ---
+      // Treat this like a brand-new install
       localStorage.clear();
+
       setUserProfile(null);
       setCategories([]);
       setTasks([]);
       setSuggestions([]);
-      setCurrentView("dashboard");
-      toast.success("Demo mode disabled. Starting fresh!");
+      setSuggestionPool([]);
+      setTemplates([]);
+      setDocuments([]);
+
+      // We’re already initialized (app shell is up), just move to onboarding
+      setCurrentView("onboarding");
+      toast.success("Demo mode disabled. Let’s set things up for you!");
     }
   };
-
 
   const handleAddTask = (
     taskData: Omit<Task, "id" | "createdAt">,
@@ -522,37 +699,29 @@ export default function App() {
     storage.saveTasks(updatedTasks);
   };
 
-  const handleDismissSuggestion = (
-    suggestionId: string,
-    options?: { temporary?: boolean }
-  ) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, dismissed: true } : s
-    );
-
-    // Always update in-memory state so the card disappears now - for snooze
-    setSuggestions(updatedSuggestions);
-
-    // Only persist to storage if this is a permanent dismiss
-    if (!options?.temporary) {
-      storage.saveSuggestions(updatedSuggestions);
-    }
+  const dismissSuggestion = (id: string) => {
+    const updated = suggestions.filter((s) => s.id !== id);
+    setSuggestions(updated);
   };
 
-  const handleSuggestionFeedback = (
-    suggestionId: string,
-    feedback: "more" | "less"
+  const snoozeSuggestion = (id: string) => {
+    const updated = suggestions.filter((s) => s.id !== id);
+    setSuggestions(updated);
+  };
+  const handleDismissSuggestion = (
+    id: string,
+    options?: { temporary?: boolean }
   ) => {
-    const updatedSuggestions = suggestions.map((s) =>
-      s.id === suggestionId ? { ...s, feedback } : s
-    );
-    setSuggestions(updatedSuggestions);
-    storage.saveSuggestions(updatedSuggestions);
-    toast.success(
-      feedback === "more"
-        ? "We'll show more like this 👍"
-        : "We'll show less like this 👎"
-    );
+    if (options?.temporary) {
+      // snooze: remove it from the visible 6, but don’t permanently kill it
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+      // the effect that keeps count at 6 will refill
+    } else {
+      // hard dismiss: same behavior for now (we’re not doing permanent removal yet)
+      const updated = suggestions.filter((s) => s.id !== id);
+      setSuggestions(updated);
+    }
   };
 
   const handleAddCategory = (categoryData: Omit<Category, "id">) => {
@@ -681,7 +850,9 @@ export default function App() {
     }
   };
 
-  const handleCreateTaskFromUpload = (taskData: Omit<Task, "id" | "createdAt">): string => {
+  const handleCreateTaskFromUpload = (
+    taskData: Omit<Task, "id" | "createdAt">
+  ): string => {
     const newID = `task-${Date.now()}`;
     const newTask: Task = {
       ...taskData,
@@ -723,7 +894,6 @@ export default function App() {
     setCurrentView("edit-task");
   };
 
-
   const navigateToEditTemplate = (templateId: string) => {
     setPreviousView(currentView);
     setSelectedTemplateId(templateId);
@@ -763,6 +933,69 @@ export default function App() {
     }
   };
 
+  const createTaskFromSuggestion = (s: Suggestion) => {
+    const title = s.title;
+    const description = s.message;
+    const categoryId = s.categoryId ?? categories[0]?.id ?? "";
+
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      title: title,
+      description: description,
+      categoryId: categoryId,
+      notes: "",
+      attachments: [],
+      reminders: [],
+      completed: false,
+      date: new Date(),
+      createdAt: new Date(),
+    };
+
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    storage.saveTasks(updatedTasks);
+
+    const updatedSuggestions = suggestions.map((sg) =>
+      sg.id === s.id ? { ...sg, dismissed: true } : sg
+    );
+    setSuggestions(updatedSuggestions);
+    storage.saveSuggestions(updatedSuggestions);
+
+    setSelectedTaskId(newTask.id);
+    setCurrentView("edit-task");
+  };
+
+  const createTemplateFromSuggestion = (s: Suggestion) => {
+    const title = s.title;
+    const description = s.message;
+    const categoryId = s.categoryId ?? categories[0]?.id ?? "";
+
+    const newTemplate: Template = {
+      id: `template-${Date.now()}`,
+      name: s.title,
+      categoryId,
+      title: s.title,
+      description: s.message,
+      notes: "",
+      reminders: [],
+      isPreset: false,
+      createdAt: new Date(),
+    };
+
+    const updatedTemplates = [...templates, newTemplate];
+    setTemplates(updatedTemplates);
+    storage.saveTemplates(updatedTemplates);
+
+    const updatedSuggestions = suggestions.map((sg) =>
+      sg.id === s.id ? { ...sg, dismissed: true } : sg
+    );
+    setSuggestions(updatedSuggestions);
+    storage.saveSuggestions(updatedSuggestions);
+
+    setSelectedTemplateId(newTemplate.id);
+    setCurrentView("edit-template");
+  };
+
   // Wait for initialization to complete
   if (!isInitialized) {
     return (
@@ -787,49 +1020,34 @@ export default function App() {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
     : [];
 
-  // // Show onboarding if not completed
-  // if (!userProfile?.hasCompletedOnboarding) {
-  //   return <Onboarding onComplete={handleOnboardingComplete} onDemoMode={handleDemoMode} />;
-  // }
   // --- Welcome Screen ---
-if (currentView === 'welcome') {
-  return (
-    <WelcomePage
-      onGetStarted={() => setCurrentView('onboarding')}
-      onDemoMode={handleDemoMode}
-    />
-  );
-}
+  if (currentView === "welcome") {
+    return (
+      <WelcomePage
+        onGetStarted={() => setCurrentView("onboarding")}
+        onDemoMode={handleDemoMode}
+      />
+    );
+  }
 
-if (currentView === 'loading') {
-  return (
-    <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />
-  )
-}
+  if (currentView === "loading") {
+    return <LoadingPage onFinishLoading={() => setCurrentView("dashboard")} />;
+  }
 
-// --- Onboarding Screen ---
-if (currentView === 'onboarding') {
-  return (
-    <Onboarding
-      onComplete={(data) => {
-        handleOnboardingComplete(data);
-        // setCurrentView('dashboard'); // go to dashboard after onboarding
-        setCurrentView('loading') // go to a loading screen that lasts 2 seconds before dashboard
-      }}
-      onDemoMode={handleDemoMode}
-    />
-  );
-}
+  // --- Onboarding Screen ---
+  if (currentView === "onboarding") {
+    return (
+      <Onboarding
+        onComplete={(data) => {
+          handleOnboardingComplete(data);
+          // setCurrentView('dashboard'); // go to dashboard after onboarding
+          setCurrentView("loading"); // go to a loading screen that lasts 2 seconds before dashboard
+        }}
+        onDemoMode={handleDemoMode}
+      />
+    );
+  }
 
-
-  // Check if we're on a main view (for bottom nav)
-  // const isMainView = [
-  //   "dashboard",
-  //   "categories",
-  //   "category",
-  //   "settings",
-  //   "reminders",
-  // ].includes(currentView);
   const isMainView = true;
 
   return (
@@ -839,25 +1057,13 @@ if (currentView === 'onboarding') {
         style={{ top: "calc(var(--safe-area-inset-top)" }}
       />
 
-      {/* Mobile Header */}
-      {/* <header
-        className="sticky top-0 z-50 bg-white border-b shadow-sm"
-        style={{ paddingTop: "var(--safe-area-inset-top)" }}
-      >
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-center">
-            <h2 className="text-primary text-3xl relative">
-              <Sparkles className="absolute -left-10 top-1/2 -translate-y-1/2 h-8 w-8 text-[#312E81]" />
-              OnTrack
-            </h2>
-          </div>
-        </div>
-      </header> */}
-
       {/* Main Content */}
       <main
         className="px-4 max-w-2xl mx-auto"
-        style={{ paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)", paddingTop: "calc(var(--safe-area-inset-top) + 15px)" }}
+        style={{
+          paddingBottom: "calc(var(--safe-area-inset-bottom) + 100px)",
+          paddingTop: "calc(var(--safe-area-inset-top) + 15px)",
+        }}
       >
         {currentView === "dashboard" && (
           <Dashboard
@@ -869,8 +1075,9 @@ if (currentView === 'onboarding') {
             onNavigateToTaskDetails={navigateToEditTask}
             onToggleTask={handleToggleTask}
             onDismissSuggestion={handleDismissSuggestion}
-            onSuggestionFeedback={handleSuggestionFeedback}
             onUpdateTask={handleUpdateTask}
+            onCreateTaskFromSuggestion={createTaskFromSuggestion}
+            onCreateTemplateFromSuggestion={createTemplateFromSuggestion}
           />
         )}
 
@@ -951,7 +1158,6 @@ if (currentView === 'onboarding') {
           />
         )}
 
-
         {currentView === "edit-task" && selectedTask && (
           <TaskForm
             task={selectedTask}
@@ -959,6 +1165,7 @@ if (currentView === 'onboarding') {
             onSave={handleEditTask}
             onCancel={navigateToDashboard}
             onDelete={handleDeleteTask}
+            onChangeToCamera={handleModeSelected}
           />
         )}
 
@@ -1039,29 +1246,7 @@ if (currentView === 'onboarding') {
         </button>
       )}
 
-      {/* Task Creation Mode Dialog */}
-      {/* {currentView === "pre-add-task" && (
-        <TaskCreationModeDialog
-          open={showModeDialog}
-          onOpenChange={setShowModeDialog}
-          onSelectMode={handleModeSelected}
-          onCancel={navigateToDashboard}
-        />
-      )} */}
-
-      {/* Template Selection Dialog
-      {currentView === "select-template" && (
-        <TemplateSelectionDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          categories={categories}
-          customTemplates={templates}
-          onSelectTemplate={handleTemplateSelected}
-          onDeleteTemplate={handleDeleteTemplate}
-        />
-      )} */}
-
-      {/* bottom navigation */}
+      {/* Bottom Navigation */}
       {isMainView && (
         <nav
           className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20"
@@ -1108,6 +1293,17 @@ if (currentView === 'onboarding') {
             </button>
           </div>
         </nav>
+      )}
+
+      {/* Floating Action Button */}
+      {(currentView === "dashboard" || currentView === "categories") && (
+        <button
+          onClick={() => navigateToAddTask()}
+          className="fixed bottom-24 right-4 bg-[#312E81] text-[#F8FAFC] rounded-full shadow-lg px-5 py-3 flex items-center gap-2 active:bg-[#4338CA] transition-all active:scale-95 z-10"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-sm">New Task</span>
+        </button>
       )}
     </div>
   );
