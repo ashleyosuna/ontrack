@@ -37,14 +37,14 @@ const features = [
     icon: Sparkles,
     title: "Context-Aware Assistant",
     description:
-      'Get smart suggestions of related tasks. "Your trip is in 3 months—check your passport expiry" and more.',
+      'Get smart suggestions of other things you might forget to keep track of. "Your trip is in 3 months—make sure your passport is renewed!" and more.',
     color: "from-emerald-300 to-cyan-400",
   },
   {
     icon: ThumbsUp,
-    title: "Learning Preferences",
+    title: "Your Life Admin in One Place",
     description:
-      "React with 'more like this' or 'less like this' to train the assistant to match your preferences perfectly.",
+      "Stop juggling Google Calendar, Notes, banking apps, and email. OnTrack ensures you're not constantly switching between apps trying to remember where you wrote something down.",
     color: "from-cyan-300 to-blue-400",
   },
   {

@@ -35,7 +35,7 @@ export function Hero() {
       <div className="container mx-auto px-6 mt-5 mb-15">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-slate-900 rounded-full">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-200 text-slate-900 rounded-full">
               <Bell className="w-4 h-4" />
               <span className="text-sm">
                 Your data stays on your device • 100% private
@@ -46,7 +46,7 @@ export function Hero() {
               <h1 className="text-3xl font-semibold">
                 Your personal assistant for life tasks
               </h1>
-              <span className="block text-purple-900 mt-2">
+              <span className="block text-primary mt-2">
                 Never miss a renewal, deadline, or checkup again.
               </span>
             </div>
@@ -103,11 +103,11 @@ export function Hero() {
           </div>
 
           <div className="relative">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-white p-4">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-white p-4 aspect-[14/8.5]">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1657040298726-7189d3090d5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcmdhbml6ZWQlMjB0YXNrcyUyMGNhbGVuZGFyfGVufDF8fHx8MTc2MTU3NzY4OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src={"heroimage.png"}
                 alt="OnTrack app interface"
-                className="w-full h-auto rounded-2xl"
+                className="w-full h-full object-cover rounded-2xl"
               />
             </div>
             {/* Decorative elements */}

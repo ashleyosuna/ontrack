@@ -30,16 +30,16 @@ export function ScreenShowcase() {
         <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-items-center">
           {/* Home Dashboard Mockup */}
           <ImageWithFallback
-            className="rounded-lg border border-[#403ca1] md:w-[300px]"
-            src={"home.png"}
+            className="rounded-lg border border-[#403ca1] md:w-[500px]"
+            src={"ontrack_home.png"}
           />
           <ImageWithFallback
-            className="rounded-lg border border-[#403ca1] md:w-[272px]"
-            src={"create2.png"}
+            className="rounded-lg border border-[#403ca1] md:w-[500px]"
+            src={"sampleTask.png"}
           />
           <ImageWithFallback
-            className="rounded-lg border border-[#403ca1] sm:w-[360px]"
-            src="sampleCategory.png"
+            className="rounded-lg border border-[#403ca1] mm:w-[500px]"
+            src="reminders.png"
           />
           
         </div>

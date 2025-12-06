@@ -36,7 +36,7 @@ export function PrivacySection() {
     >
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-full mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500/20 text-teal-300 rounded-full mb-6">
             <Shield className="w-4 h-4" />
             <span className="text-base font-semibold text-lg">Privacy First</span>
           </div>
@@ -54,7 +54,7 @@ export function PrivacySection() {
               key={index}
               className="p-8 bg-white/10 border-2 border-white/20 backdrop-blur-md hover:bg-white/15 hover:border-white/30 transition-all duration-300"
             >
-              <feature.icon className="w-8 h-8 text-cyan-400 mb-4" />
+              <feature.icon className="w-8 h-8 text-teal-400 mb-4" />
               <h3 className="text-white mb-2">{feature.title}</h3>
               <p className="text-slate-400 text-sm">{feature.description}</p>
             </Card>
@@ -66,9 +66,9 @@ export function PrivacySection() {
             Built for people who value their privacy without compromising on
             functionality.
           </p>
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-full">
-            <Lock className="w-5 h-5 text-cyan-400" />
-            <span className="text-cyan-300 font-semibold text-lg">
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-teal-500/10 border border-teal-500/30 rounded-full">
+            <Lock className="w-5 h-5 text-teal-400" />
+            <span className="text-teal-300 font-semibold text-lg">
               100% offline-capable • No cloud required
             </span>
           </div>
